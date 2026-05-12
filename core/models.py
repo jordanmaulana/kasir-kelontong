@@ -22,6 +22,24 @@ class BaseModel(models.Model):
         return f"{self.id}"
 
 
+class Profile(models.Model):
+    user = models.OneToOneField(
+        User,
+        on_delete=models.CASCADE,
+        primary_key=True,
+        related_name="profile",
+    )
+    onboarded = models.BooleanField(default=False)
+    created_on = models.DateTimeField(auto_now_add=True)
+    updated_on = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        app_label = "core"
+
+    def __str__(self):
+        return f"Profile<{self.user.username}>"
+
+
 class AppSetting(models.Model):
     key = models.CharField()
     should_be_unique = models.BooleanField(default=True)

@@ -7,7 +7,7 @@ import { ApiError } from "@/lib/api";
 import { me } from "@/features/auth/api";
 import { tokenAtom, userAtom } from "@/features/auth/state";
 
-const PUBLIC_PATHS = new Set(["/", "/login"]);
+const PUBLIC_PATHS = new Set(["/", "/login", "/register"]);
 const FULL_BLEED_PATHS = new Set([...PUBLIC_PATHS, "/onboarding"]);
 
 export function AuthGate() {

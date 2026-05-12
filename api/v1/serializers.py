@@ -1,7 +1,14 @@
 from django.conf import settings
+from django.contrib.auth import get_user_model
+from django.contrib.auth.password_validation import validate_password
+from django.core.exceptions import ValidationError as DjangoValidationError
 from google.auth.transport import requests as google_requests
 from google.oauth2 import id_token
 from rest_framework import serializers
+
+from core.models import Profile
+
+User = get_user_model()
 
 
 class UserSerializer(serializers.Serializer):
@@ -10,7 +17,33 @@ class UserSerializer(serializers.Serializer):
     onboarded = serializers.SerializerMethodField()
 
     def get_onboarded(self, obj):
-        return bool(getattr(obj, "profile", None) and obj.profile.full_name)
+        try:
+            return obj.profile.onboarded
+        except Profile.DoesNotExist:
+            return False
+
+
+class RegisterSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    password = serializers.CharField(write_only=True)
+
+    def validate_email(self, value):
+        email = value.lower()
+        if User.objects.filter(username__iexact=email).exists():
+            raise serializers.ValidationError("Email already registered")
+        return email
+
+    def validate_password(self, value):
+        try:
+            validate_password(value)
+        except DjangoValidationError as exc:
+            raise serializers.ValidationError(list(exc.messages)) from exc
+        return value
+
+
+class LoginSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    password = serializers.CharField(write_only=True)
 
 
 class GoogleAuthSerializer(serializers.Serializer):
