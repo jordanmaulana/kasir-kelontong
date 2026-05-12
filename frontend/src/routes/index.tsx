@@ -1,12 +1,27 @@
 import { createFileRoute } from "@tanstack/react-router";
 
+import { LandingAudienceStrip } from "@/features/landing/components/landing-audience-strip";
+import { LandingFeatures } from "@/features/landing/components/landing-features";
+import { LandingFooterCta } from "@/features/landing/components/landing-footer-cta";
+import { LandingHero } from "@/features/landing/components/landing-hero";
+import { LandingHowItWorks } from "@/features/landing/components/landing-how-it-works";
+import { LandingNav } from "@/features/landing/components/landing-nav";
+
 export const Route = createFileRoute("/")({
-  component: () => (
-    <div className="flex min-h-screen items-center justify-center px-4">
-      <div className="text-center">
-        <h1 className="text-3xl font-semibold">Welcome</h1>
-        <p className="mt-2 text-sm text-slate-600">Loading...</p>
-      </div>
-    </div>
-  ),
+  component: LandingPage,
 });
+
+function LandingPage() {
+  return (
+    <div className="min-h-screen bg-white">
+      <LandingNav />
+      <main>
+        <LandingHero />
+        <LandingAudienceStrip />
+        <LandingFeatures />
+        <LandingHowItWorks />
+        <LandingFooterCta />
+      </main>
+    </div>
+  );
+}

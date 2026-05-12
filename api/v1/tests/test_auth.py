@@ -1,5 +1,7 @@
+from unittest.mock import patch
+
 from django.contrib.auth import get_user_model
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.authtoken.models import Token
@@ -120,3 +122,150 @@ class MeTests(TestCase):
         res = client.get(reverse("api-v1-me"))
         self.assertEqual(res.status_code, status.HTTP_200_OK)
         self.assertFalse(res.data["onboarded"])
+
+
+class MeAuthTests(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+        self.url = reverse("api-v1-me")
+
+    def test_me_unauthenticated_401(self):
+        res = self.client.get(self.url)
+        self.assertEqual(res.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_me_invalid_token_401(self):
+        self.client.credentials(HTTP_AUTHORIZATION="Token bogus")
+        res = self.client.get(self.url)
+        self.assertEqual(res.status_code, status.HTTP_401_UNAUTHORIZED)
+
+
+class LogoutTests(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+        self.url = reverse("api-v1-logout")
+        self.user = User.objects.create_user(
+            username="a@b.com", email="a@b.com", password="hunter2hunter2"
+        )
+        self.token = Token.objects.create(user=self.user)
+
+    def test_logout_204_deletes_token(self):
+        self.client.credentials(HTTP_AUTHORIZATION=f"Token {self.token.key}")
+        res = self.client.post(self.url)
+        self.assertEqual(res.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertFalse(Token.objects.filter(user=self.user).exists())
+
+    def test_logout_unauthenticated_401(self):
+        res = self.client.post(self.url)
+        self.assertEqual(res.status_code, status.HTTP_401_UNAUTHORIZED)
+
+
+@override_settings(GOOGLE_OAUTH_CLIENT_ID="test-client-id")
+class GoogleTests(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+        self.url = reverse("api-v1-auth-google")
+
+    @patch("api.v1.serializers.id_token.verify_oauth2_token")
+    def test_new_user_201_creates_user_profile_token(self, mock_verify):
+        mock_verify.return_value = {"email": "new@b.com", "email_verified": True}
+        res = self.client.post(self.url, {"credential": "fake-jwt"}, format="json")
+        self.assertEqual(res.status_code, status.HTTP_201_CREATED)
+        self.assertIn("token", res.data)
+        self.assertEqual(res.data["user"]["email"], "new@b.com")
+        user = User.objects.get(username="new@b.com")
+        self.assertTrue(Profile.objects.filter(user=user).exists())
+        self.assertTrue(Token.objects.filter(user=user).exists())
+        self.assertFalse(user.has_usable_password())
+
+    @patch("api.v1.serializers.id_token.verify_oauth2_token")
+    def test_existing_user_200_reuses_user(self, mock_verify):
+        user = User.objects.create_user(
+            username="a@b.com", email="a@b.com", password="hunter2hunter2"
+        )
+        Profile.objects.create(user=user)
+        mock_verify.return_value = {"email": "a@b.com", "email_verified": True}
+        res = self.client.post(self.url, {"credential": "fake-jwt"}, format="json")
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertEqual(User.objects.filter(username="a@b.com").count(), 1)
+        self.assertIn("token", res.data)
+
+    @patch("api.v1.serializers.id_token.verify_oauth2_token")
+    def test_existing_user_case_insensitive(self, mock_verify):
+        user = User.objects.create_user(
+            username="a@b.com", email="a@b.com", password="hunter2hunter2"
+        )
+        Profile.objects.create(user=user)
+        mock_verify.return_value = {"email": "A@B.com", "email_verified": True}
+        res = self.client.post(self.url, {"credential": "fake-jwt"}, format="json")
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertEqual(User.objects.filter(username__iexact="a@b.com").count(), 1)
+
+    @patch("api.v1.serializers.id_token.verify_oauth2_token")
+    def test_unverified_email_400(self, mock_verify):
+        mock_verify.return_value = {"email": "x@b.com", "email_verified": False}
+        res = self.client.post(self.url, {"credential": "fake-jwt"}, format="json")
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+
+    @patch("api.v1.serializers.id_token.verify_oauth2_token")
+    def test_invalid_credential_400(self, mock_verify):
+        mock_verify.side_effect = ValueError("bad token")
+        res = self.client.post(self.url, {"credential": "fake-jwt"}, format="json")
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_missing_credential_400(self):
+        res = self.client.post(self.url, {}, format="json")
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("credential", res.data)
+
+
+class GoogleNotConfiguredTests(TestCase):
+    @override_settings(GOOGLE_OAUTH_CLIENT_ID="")
+    def test_google_not_configured_400(self):
+        client = APIClient()
+        res = client.post(
+            reverse("api-v1-auth-google"),
+            {"credential": "anything"},
+            format="json",
+        )
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+
+
+class RegisterValidationTests(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+        self.url = reverse("api-v1-auth-register")
+
+    def test_missing_email_400(self):
+        res = self.client.post(self.url, {"password": "hunter2hunter2"}, format="json")
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("email", res.data)
+
+    def test_missing_password_400(self):
+        res = self.client.post(self.url, {"email": "a@b.com"}, format="json")
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("password", res.data)
+
+    def test_invalid_email_format_400(self):
+        res = self.client.post(
+            self.url,
+            {"email": "notanemail", "password": "hunter2hunter2"},
+            format="json",
+        )
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("email", res.data)
+
+
+class LoginValidationTests(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+        self.url = reverse("api-v1-auth-login")
+
+    def test_missing_email_400(self):
+        res = self.client.post(self.url, {"password": "hunter2hunter2"}, format="json")
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("email", res.data)
+
+    def test_missing_password_400(self):
+        res = self.client.post(self.url, {"email": "a@b.com"}, format="json")
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("password", res.data)
