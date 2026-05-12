@@ -33,7 +33,7 @@ export function GoogleSignInCard() {
       callback: ({ credential }) =>
         signIn.mutate(credential, {
           onSuccess: () => navigate({ to: "/dashboard" }),
-          onError: (err) => toast.error(err instanceof Error ? err.message : "Sign-in failed"),
+          onError: (err) => toast.error(err instanceof Error ? err.message : "Gagal masuk"),
         }),
     });
     window.google.accounts.id.renderButton(ref.current, {
@@ -45,11 +45,11 @@ export function GoogleSignInCard() {
 
   return (
     <div className="w-full max-w-sm rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-      <h1 className="text-xl font-semibold">Sign in</h1>
-      <p className="mt-1 text-sm text-slate-600">Continue with Google.</p>
+      <h1 className="text-xl font-semibold">Masuk</h1>
+      <p className="mt-1 text-sm text-slate-600">Lanjutkan dengan Google.</p>
       <div ref={ref} className="mt-6 flex justify-center" />
       {!clientId && (
-        <p className="mt-4 text-xs text-red-600">VITE_GOOGLE_CLIENT_ID not set.</p>
+        <p className="mt-4 text-xs text-red-600">VITE_GOOGLE_CLIENT_ID belum diatur.</p>
       )}
     </div>
   );

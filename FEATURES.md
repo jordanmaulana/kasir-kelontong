@@ -29,13 +29,13 @@ KasirKelontong is a multi-store Point-of-Sale webapp. One admin owns many stores
 - Login returns JWT (or session cookie) for the React SPA.
 
 ### F2 — Store management
-- Admin CRUD on stores: name, address, **unique store code** (used by cashiers to log in — short, e.g. `JKT01`).
-- Listed on admin dashboard with quick links to stock & reports.
+- Store owner CRUD on stores: name, address, **unique store code** (used by cashiers to log in — short, e.g. `JKT01`).
+- Listed on store owner dashboard with quick links to stock & reports.
 
 ### F3 — Cashier accounts
-- Admin creates cashier under a specific store: display name + PIN (hashed).
+- Store owner creates cashier under a specific store: display name + PIN (hashed).
 - PIN must be unique within a store (so `store_code + pin` is globally unique enough to identify a cashier).
-- Admin can deactivate a cashier without deleting (preserve sales history FK).
+- Store owner can deactivate a cashier without deleting (preserve sales history FK).
 
 ### F4 — Product catalog (tenant-wide)
 - Fields: `barcode` (unique per tenant), `name`, `sell_price`.

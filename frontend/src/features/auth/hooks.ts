@@ -1,7 +1,14 @@
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAtom } from "jotai";
 
-import { emailLogin, googleSignIn, logout, me, register } from "@/features/auth/api";
+import {
+  completeOnboarding,
+  emailLogin,
+  googleSignIn,
+  logout,
+  me,
+  register,
+} from "@/features/auth/api";
 import { tokenAtom, userAtom } from "@/features/auth/state";
 
 export function useMe() {
@@ -57,6 +64,18 @@ export function useLogout() {
     onSuccess: () => {
       setToken(null);
       setUser(null);
+    },
+  });
+}
+
+export function useCompleteOnboarding() {
+  const [, setUser] = useAtom(userAtom);
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: completeOnboarding,
+    onSuccess: (res) => {
+      setUser(res.user);
+      qc.invalidateQueries({ queryKey: ["stores"] });
     },
   });
 }

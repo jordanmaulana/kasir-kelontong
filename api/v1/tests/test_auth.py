@@ -7,7 +7,7 @@ from rest_framework import status
 from rest_framework.authtoken.models import Token
 from rest_framework.test import APIClient
 
-from core.models import Profile
+from core.models import Profile, Store, Tenant
 
 User = get_user_model()
 
@@ -78,7 +78,7 @@ class LoginTests(TestCase):
             format="json",
         )
         self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertEqual(res.data["detail"], "Invalid credentials")
+        self.assertEqual(res.data["detail"], "Email atau kata sandi salah")
 
     def test_unknown_email_400(self):
         res = self.client.post(
@@ -87,7 +87,7 @@ class LoginTests(TestCase):
             format="json",
         )
         self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertEqual(res.data["detail"], "Invalid credentials")
+        self.assertEqual(res.data["detail"], "Email atau kata sandi salah")
 
 
 class MeTests(TestCase):
@@ -253,6 +253,83 @@ class RegisterValidationTests(TestCase):
         )
         self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn("email", res.data)
+
+
+class OnboardingTests(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+        self.url = reverse("api-v1-auth-onboarding")
+        self.user = User.objects.create_user(
+            username="a@b.com", email="a@b.com", password="hunter2hunter2"
+        )
+        self.profile = Profile.objects.create(user=self.user)
+        self.tenant = Tenant.objects.create(owner=self.user, name="My Business")
+        self.token = Token.objects.create(user=self.user)
+        self.client.credentials(HTTP_AUTHORIZATION=f"Token {self.token.key}")
+
+    def test_success_creates_store_and_flips_onboarded(self):
+        res = self.client.post(
+            self.url,
+            {"name": "Toko Pusat", "code": "JKT01", "address": "Jl. 1"},
+            format="json",
+        )
+        self.assertEqual(res.status_code, status.HTTP_201_CREATED)
+        self.assertTrue(res.data["user"]["onboarded"])
+        self.assertEqual(res.data["store"]["code"], "JKT01")
+        self.profile.refresh_from_db()
+        self.assertTrue(self.profile.onboarded)
+        self.assertTrue(
+            Store.objects.filter(tenant=self.tenant, code="JKT01").exists()
+        )
+
+    def test_lowercase_code_normalized(self):
+        res = self.client.post(
+            self.url, {"name": "Toko", "code": "jkt01"}, format="json"
+        )
+        self.assertEqual(res.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(res.data["store"]["code"], "JKT01")
+
+    def test_already_onboarded_400(self):
+        self.profile.onboarded = True
+        self.profile.save()
+        res = self.client.post(
+            self.url, {"name": "Toko", "code": "JKT01"}, format="json"
+        )
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(res.data["detail"], "Onboarding sudah selesai")
+        self.assertFalse(Store.objects.filter(tenant=self.tenant).exists())
+
+    def test_missing_tenant_400(self):
+        self.tenant.delete()
+        res = self.client.post(
+            self.url, {"name": "Toko", "code": "JKT01"}, format="json"
+        )
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(res.data["detail"], "Tenant tidak ditemukan")
+
+    def test_invalid_code_rolls_back(self):
+        res = self.client.post(
+            self.url, {"name": "Toko", "code": "JK"}, format="json"
+        )
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("code", res.data)
+        self.profile.refresh_from_db()
+        self.assertFalse(self.profile.onboarded)
+        self.assertFalse(Store.objects.filter(tenant=self.tenant).exists())
+
+    def test_missing_name_400(self):
+        res = self.client.post(self.url, {"code": "JKT01"}, format="json")
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("name", res.data)
+        self.profile.refresh_from_db()
+        self.assertFalse(self.profile.onboarded)
+
+    def test_unauthenticated_401(self):
+        client = APIClient()
+        res = client.post(
+            self.url, {"name": "Toko", "code": "JKT01"}, format="json"
+        )
+        self.assertEqual(res.status_code, status.HTTP_401_UNAUTHORIZED)
 
 
 class LoginValidationTests(TestCase):

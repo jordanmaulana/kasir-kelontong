@@ -1,5 +1,6 @@
 import { api } from "@/lib/api";
 import type { AuthResponse, AuthUser } from "@/features/auth/types";
+import type { Store } from "@/features/stores/types";
 
 const TOKEN_KEY = "token";
 
@@ -60,4 +61,24 @@ export async function logout(): Promise<void> {
 
 export async function me(): Promise<AuthUser> {
   return api<AuthUser>("/auth/me/");
+}
+
+export interface OnboardingInput {
+  name: string;
+  code: string;
+  address?: string;
+}
+
+export interface OnboardingResponse {
+  user: AuthUser;
+  store: Store;
+}
+
+export async function completeOnboarding(
+  body: OnboardingInput
+): Promise<OnboardingResponse> {
+  return api<OnboardingResponse>("/auth/onboarding/", {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
 }

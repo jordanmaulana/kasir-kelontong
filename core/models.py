@@ -11,7 +11,9 @@ class BaseModel(models.Model):
     id = models.CharField(primary_key=True, default=make_object_id, editable=False)
     created_on = models.DateTimeField(auto_now_add=True)
     updated_on = models.DateTimeField(auto_now=True)
-    actor = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL)
+    actor = models.ForeignKey(
+        User, null=True, blank=True, on_delete=models.SET_NULL, related_name="+"
+    )
 
     class Meta:
         abstract = True
@@ -38,6 +40,41 @@ class Profile(models.Model):
 
     def __str__(self):
         return f"Profile<{self.user.username}>"
+
+
+class Tenant(BaseModel):
+    name = models.CharField(max_length=120)
+    owner = models.OneToOneField(
+        User, on_delete=models.CASCADE, related_name="tenant"
+    )
+
+    class Meta:
+        app_label = "core"
+        ordering = ["created_on"]
+
+    def __str__(self):
+        return f"Tenant<{self.name}>"
+
+
+class Store(BaseModel):
+    tenant = models.ForeignKey(
+        Tenant, on_delete=models.CASCADE, related_name="stores"
+    )
+    name = models.CharField(max_length=120)
+    address = models.TextField(blank=True, default="")
+    code = models.CharField(max_length=10)
+
+    class Meta:
+        app_label = "core"
+        ordering = ["code"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["tenant", "code"], name="uniq_store_code_per_tenant"
+            )
+        ]
+
+    def __str__(self):
+        return f"Store<{self.code}>"
 
 
 class AppSetting(models.Model):

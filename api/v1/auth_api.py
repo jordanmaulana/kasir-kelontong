@@ -10,9 +10,10 @@ from api.v1.serializers import (
     GoogleAuthSerializer,
     LoginSerializer,
     RegisterSerializer,
+    StoreSerializer,
     UserSerializer,
 )
-from core.models import Profile
+from core.models import Profile, Tenant
 
 User = get_user_model()
 
@@ -29,6 +30,7 @@ def register(request):
         user.set_password(password)
         user.save()
         Profile.objects.create(user=user)
+        Tenant.objects.create(owner=user, name="My Business")
         token = Token.objects.create(user=user)
     return Response(
         {"token": token.key, "user": UserSerializer(user).data},
@@ -46,7 +48,7 @@ def login(request):
     user = User.objects.filter(username__iexact=email).first()
     if user is None or not user.check_password(password):
         return Response(
-            {"detail": "Invalid credentials"},
+            {"detail": "Email atau kata sandi salah"},
             status=status.HTTP_400_BAD_REQUEST,
         )
     token, _ = Token.objects.get_or_create(user=user)
@@ -71,6 +73,7 @@ def google(request):
             user.set_unusable_password()
             user.save(update_fields=["password"])
         Profile.objects.get_or_create(user=user)
+        Tenant.objects.get_or_create(owner=user, defaults={"name": "My Business"})
         token, _ = Token.objects.get_or_create(user=user)
     return Response(
         {"token": token.key, "user": UserSerializer(user).data},
@@ -89,3 +92,33 @@ def logout(request):
 @permission_classes([IsAuthenticated])
 def me(request):
     return Response(UserSerializer(request.user).data)
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def complete_onboarding(request):
+    profile, _ = Profile.objects.get_or_create(user=request.user)
+    if profile.onboarded:
+        return Response(
+            {"detail": "Onboarding sudah selesai"},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+    tenant = Tenant.objects.filter(owner=request.user).first()
+    if tenant is None:
+        return Response(
+            {"detail": "Tenant tidak ditemukan"},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+    serializer = StoreSerializer(data=request.data, context={"tenant": tenant})
+    serializer.is_valid(raise_exception=True)
+    with transaction.atomic():
+        store = serializer.save(tenant=tenant, actor=request.user)
+        profile.onboarded = True
+        profile.save(update_fields=["onboarded", "updated_on"])
+    return Response(
+        {
+            "user": UserSerializer(request.user).data,
+            "store": StoreSerializer(store).data,
+        },
+        status=status.HTTP_201_CREATED,
+    )

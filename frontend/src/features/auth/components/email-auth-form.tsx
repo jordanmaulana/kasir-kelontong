@@ -8,8 +8,8 @@ import { useEmailLogin, useRegister } from "@/features/auth/hooks";
 import { ApiError } from "@/lib/api";
 
 const schema = z.object({
-  email: z.string().email("Enter a valid email"),
-  password: z.string().min(8, "Password must be at least 8 characters"),
+  email: z.string().email("Masukkan email yang valid"),
+  password: z.string().min(8, "Kata sandi minimal 8 karakter"),
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -37,26 +37,26 @@ export function EmailAuthForm({ mode }: Props) {
         if (err instanceof ApiError) {
           toast.error(err.message);
         } else {
-          toast.error(err instanceof Error ? err.message : "Request failed");
+          toast.error(err instanceof Error ? err.message : "Permintaan gagal");
         }
       },
     });
 
-  const title = mode === "register" ? "Create account" : "Sign in";
-  const submitLabel = mode === "register" ? "Sign up" : "Sign in";
+  const title = mode === "register" ? "Buat akun" : "Masuk";
+  const submitLabel = mode === "register" ? "Daftar" : "Masuk";
   const altLink =
     mode === "register" ? (
       <p className="mt-4 text-sm text-slate-600">
-        Already have an account?{" "}
+        Sudah punya akun?{" "}
         <Link to="/login" className="font-medium text-slate-900 underline">
-          Sign in
+          Masuk
         </Link>
       </p>
     ) : (
       <p className="mt-4 text-sm text-slate-600">
-        No account yet?{" "}
+        Belum punya akun?{" "}
         <Link to="/register" className="font-medium text-slate-900 underline">
-          Create one
+          Buat akun
         </Link>
       </p>
     );
@@ -83,7 +83,7 @@ export function EmailAuthForm({ mode }: Props) {
         </div>
         <div>
           <label className="block text-sm font-medium text-slate-700" htmlFor="password">
-            Password
+            Kata sandi
           </label>
           <input
             id="password"
@@ -101,7 +101,7 @@ export function EmailAuthForm({ mode }: Props) {
           disabled={mutation.isPending}
           className="w-full rounded-md bg-slate-900 px-3 py-2 text-sm font-medium text-white shadow-sm hover:bg-slate-800 disabled:opacity-50"
         >
-          {mutation.isPending ? "Working…" : submitLabel}
+          {mutation.isPending ? "Memproses…" : submitLabel}
         </button>
       </form>
       {altLink}
