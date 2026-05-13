@@ -24,7 +24,7 @@ interface CashierApiInit extends RequestInit {
   skipAuth?: boolean;
 }
 
-async function cashierApi<T>(path: string, init?: CashierApiInit): Promise<T> {
+export async function cashierApi<T>(path: string, init?: CashierApiInit): Promise<T> {
   const { skipAuth, ...rest } = init ?? {};
   const token = !skipAuth ? getCashierToken() : null;
   const headers: Record<string, string> = {

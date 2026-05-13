@@ -6,6 +6,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from api.v1._tenant import require_store
+from api.v1.cashier_auth import CashierTokenAuthentication
 from api.v1.serializers import (
     AdjustmentSerializer,
     ReceivingSerializer,
@@ -17,6 +18,31 @@ from stock.models import StockMovement, StockReason, StoreStock
 from stock.services import OutOfStockError, record_movement
 
 
+def build_stock_rows(store, q=""):
+    products = Product.objects.filter(tenant=store.tenant)
+    q = (q or "").strip()
+    if q:
+        products = products.filter(Q(name__icontains=q) | Q(barcode__icontains=q))
+    stocks = {
+        s.product_id: s
+        for s in StoreStock.objects.filter(store=store, product__in=products)
+    }
+    rows = []
+    for p in products:
+        s = stocks.get(p.id)
+        rows.append(
+            {
+                "product_id": p.id,
+                "name": p.name,
+                "barcode": p.barcode,
+                "sell_price": p.sell_price,
+                "qty": s.qty if s else 0,
+                "last_movement_at": s.last_movement_at if s else None,
+            }
+        )
+    return rows
+
+
 class StoreStockView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -24,27 +50,17 @@ class StoreStockView(APIView):
         store, err = require_store(request.user, store_id)
         if err:
             return err
-        products = Product.objects.filter(tenant=store.tenant)
-        q = request.query_params.get("q", "").strip()
-        if q:
-            products = products.filter(Q(name__icontains=q) | Q(barcode__icontains=q))
-        stocks = {
-            s.product_id: s
-            for s in StoreStock.objects.filter(store=store, product__in=products)
-        }
-        rows = []
-        for p in products:
-            s = stocks.get(p.id)
-            rows.append(
-                {
-                    "product_id": p.id,
-                    "name": p.name,
-                    "barcode": p.barcode,
-                    "sell_price": p.sell_price,
-                    "qty": s.qty if s else 0,
-                    "last_movement_at": s.last_movement_at if s else None,
-                }
-            )
+        rows = build_stock_rows(store, request.query_params.get("q", ""))
+        return Response(StockListItemSerializer(rows, many=True).data)
+
+
+class CashierStockView(APIView):
+    authentication_classes = [CashierTokenAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        store = request.auth.store
+        rows = build_stock_rows(store, request.query_params.get("q", ""))
         return Response(StockListItemSerializer(rows, many=True).data)
 
 

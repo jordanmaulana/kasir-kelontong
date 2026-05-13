@@ -321,6 +321,67 @@ class AdjustmentSerializer(serializers.Serializer):
         return attrs
 
 
+class SaleLineInputSerializer(serializers.Serializer):
+    product_id = serializers.CharField()
+    qty = serializers.IntegerField(min_value=1)
+
+
+class SaleCreateSerializer(serializers.Serializer):
+    lines = SaleLineInputSerializer(many=True)
+    tendered = serializers.IntegerField(min_value=0)
+
+    def validate_lines(self, value):
+        if not value:
+            raise serializers.ValidationError("Minimal 1 item")
+        seen = set()
+        for line in value:
+            pid = line["product_id"]
+            if pid in seen:
+                raise serializers.ValidationError(
+                    f"Produk {pid} duplikat dalam satu transaksi"
+                )
+            seen.add(pid)
+        return value
+
+
+class SaleLineSerializer(serializers.Serializer):
+    id = serializers.CharField(read_only=True)
+    product_id = serializers.CharField(source="product.id", read_only=True)
+    product_name = serializers.CharField(source="product.name", read_only=True)
+    barcode = serializers.CharField(
+        source="product.barcode", read_only=True, allow_null=True
+    )
+    qty = serializers.IntegerField(read_only=True)
+    unit_price = serializers.IntegerField(read_only=True)
+    line_total = serializers.IntegerField(read_only=True)
+
+
+class SaleDetailSerializer(serializers.Serializer):
+    id = serializers.CharField(read_only=True)
+    store_id = serializers.CharField(source="store.id", read_only=True)
+    cashier_id = serializers.CharField(source="cashier.id", read_only=True)
+    cashier_name = serializers.CharField(
+        source="cashier.display_name", read_only=True
+    )
+    subtotal = serializers.IntegerField(read_only=True)
+    tendered = serializers.IntegerField(read_only=True)
+    change = serializers.IntegerField(read_only=True)
+    created_on = serializers.DateTimeField(read_only=True)
+    lines = SaleLineSerializer(many=True, read_only=True)
+
+
+class SaleListSerializer(serializers.Serializer):
+    id = serializers.CharField(read_only=True)
+    subtotal = serializers.IntegerField(read_only=True)
+    tendered = serializers.IntegerField(read_only=True)
+    change = serializers.IntegerField(read_only=True)
+    created_on = serializers.DateTimeField(read_only=True)
+    line_count = serializers.SerializerMethodField()
+
+    def get_line_count(self, obj):
+        return obj.lines.count()
+
+
 class GoogleAuthSerializer(serializers.Serializer):
     credential = serializers.CharField()
 

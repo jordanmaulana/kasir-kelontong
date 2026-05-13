@@ -1,6 +1,6 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useAtom } from "jotai";
-import { LogOut } from "lucide-react";
+import { ListChecks, LogOut, ScanLine } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { CashierGate } from "@/features/cashier-auth/components/cashier-gate";
@@ -46,13 +46,31 @@ function CashierHome() {
           . Anda sudah masuk.
         </p>
 
-        <div className="mt-8 rounded-lg border border-dashed border-slate-300 bg-slate-50 p-6 text-center">
-          <h2 className="text-base font-medium text-slate-900">
-            POS akan hadir di F7
-          </h2>
-          <p className="mt-1 text-sm text-slate-600">
-            Halaman checkout barcode + kasir sedang disiapkan.
-          </p>
+        <div className="mt-8 grid gap-3 sm:grid-cols-2">
+          <Link
+            to="/cashier/pos"
+            className="group flex flex-col items-start gap-2 rounded-xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-slate-300 hover:shadow"
+          >
+            <ScanLine className="h-7 w-7 text-emerald-600" />
+            <span className="text-base font-medium text-slate-900">
+              Mulai transaksi
+            </span>
+            <span className="text-xs text-slate-600">
+              Buka layar kasir untuk scan barcode dan terima pembayaran.
+            </span>
+          </Link>
+          <Link
+            to="/cashier/pos/sales"
+            className="group flex flex-col items-start gap-2 rounded-xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-slate-300 hover:shadow"
+          >
+            <ListChecks className="h-7 w-7 text-sky-600" />
+            <span className="text-base font-medium text-slate-900">
+              Penjualan hari ini
+            </span>
+            <span className="text-xs text-slate-600">
+              Lihat daftar transaksi yang sudah kamu kerjakan hari ini.
+            </span>
+          </Link>
         </div>
 
         <div className="mt-6 flex justify-end">
