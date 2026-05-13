@@ -8,7 +8,9 @@ from google.auth.transport import requests as google_requests
 from google.oauth2 import id_token
 from rest_framework import serializers
 
-from core.models import Cashier, CashierSession, Profile, Store
+from cashier.models import Cashier, CashierSession
+from profile.models import Profile
+from store.models import Store
 
 STORE_CODE_RE = re.compile(r"^[A-Z0-9]{3,10}$")
 PIN_RE = re.compile(r"^\d{6}$")

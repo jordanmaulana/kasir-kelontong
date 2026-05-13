@@ -8,7 +8,9 @@ from rest_framework import status
 from rest_framework.authtoken.models import Token
 from rest_framework.test import APIClient
 
-from core.models import Cashier, CashierSession, Store, Tenant
+from cashier.models import Cashier, CashierSession
+from store.models import Store
+from tenant.models import Tenant
 
 User = get_user_model()
 

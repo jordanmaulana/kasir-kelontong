@@ -35,6 +35,10 @@ INSTALLED_APPS = [
     "rest_framework.authtoken",
     "corsheaders",
     "core",
+    "profile",
+    "tenant",
+    "store",
+    "cashier",
 ]
 
 REST_FRAMEWORK = {

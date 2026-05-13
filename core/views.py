@@ -6,7 +6,9 @@ from django.shortcuts import render
 from django.utils.decorators import method_decorator
 from django.views import View
 
-from core.models import Cashier, Store, Tenant
+from cashier.models import Cashier
+from store.models import Store
+from tenant.models import Tenant
 
 
 class SuperuserRequiredMixin(View):

@@ -6,7 +6,8 @@ from rest_framework.views import APIView
 
 from api.v1._tenant import require_tenant
 from api.v1.serializers import CashierSerializer
-from core.models import Cashier, Store
+from cashier.models import Cashier
+from store.models import Store
 
 
 def _get_store(user, store_id):

@@ -1,7 +1,7 @@
 from rest_framework import status
 from rest_framework.response import Response
 
-from core.models import Tenant
+from tenant.models import Tenant
 
 
 def tenant_for(user):

@@ -13,7 +13,8 @@ from api.v1.serializers import (
     StoreSerializer,
     UserSerializer,
 )
-from core.models import Profile, Tenant
+from profile.models import Profile
+from tenant.models import Tenant
 
 User = get_user_model()
 

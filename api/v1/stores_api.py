@@ -6,7 +6,7 @@ from rest_framework.views import APIView
 
 from api.v1._tenant import require_tenant as _require_tenant
 from api.v1.serializers import StoreSerializer
-from core.models import Store
+from store.models import Store
 
 
 class StoresView(APIView):

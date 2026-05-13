@@ -14,7 +14,8 @@ from api.v1.serializers import (
     CashierLoginSerializer,
     CashierSessionSerializer,
 )
-from core.models import CashierSession, Store
+from cashier.models import CashierSession
+from store.models import Store
 
 INVALID_CRED = {"detail": "Kode toko atau PIN salah"}
 
