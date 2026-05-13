@@ -66,7 +66,7 @@ function StoreDetailPage() {
             <TabsList>
               <TabsTrigger value="kasir">Kasir</TabsTrigger>
               <TabsTrigger value="stok">Stok</TabsTrigger>
-              <TabsTrigger value="penerimaan">Penerimaan</TabsTrigger>
+              <TabsTrigger value="penerimaan">Kulakan</TabsTrigger>
               <TabsTrigger value="laporan">Laporan</TabsTrigger>
             </TabsList>
             <TabsContent value="kasir">

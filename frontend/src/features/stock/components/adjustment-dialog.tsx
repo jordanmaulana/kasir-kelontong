@@ -95,15 +95,15 @@ export function AdjustmentDialog({ open, onOpenChange, storeId, item }: Props) {
     const body: AdjustmentInput =
       values.mode === "target"
         ? {
-            product_id: item.product_id,
-            target_qty: Number(values.target_qty),
-            note: values.note,
-          }
+          product_id: item.product_id,
+          target_qty: Number(values.target_qty),
+          note: values.note,
+        }
         : {
-            product_id: item.product_id,
-            delta: Number(values.delta),
-            note: values.note,
-          };
+          product_id: item.product_id,
+          delta: Number(values.delta),
+          note: values.note,
+        };
     adjust.mutate(body, {
       onSuccess: () => {
         toast.success("Stok disesuaikan");
@@ -142,7 +142,7 @@ export function AdjustmentDialog({ open, onOpenChange, storeId, item }: Props) {
               </label>
               <label className="inline-flex items-center gap-2">
                 <input type="radio" value="delta" {...register("mode")} />
-                Ubah dengan delta
+                Ditambahi atau dikurangi
               </label>
             </div>
           </fieldset>
@@ -166,7 +166,7 @@ export function AdjustmentDialog({ open, onOpenChange, storeId, item }: Props) {
             </div>
           ) : (
             <div>
-              <Label htmlFor="adj-delta">Delta (boleh negatif)</Label>
+              <Label htmlFor="adj-delta">Jumlah (boleh negatif)</Label>
               <Input
                 id="adj-delta"
                 type="number"
