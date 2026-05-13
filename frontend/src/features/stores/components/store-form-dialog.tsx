@@ -24,10 +24,7 @@ const schema = z.object({
   name: z.string().min(1, "Nama wajib diisi").max(120),
   code: z
     .string()
-    .regex(
-      /^[A-Z0-9]{3,10}$/,
-      "Kode harus 3–10 huruf atau angka"
-    ),
+    .regex(/^[A-Z0-9]{3,10}$/, "Kode harus 3–10 huruf atau angka"),
   address: z.string().max(1000).optional(),
 });
 
@@ -104,31 +101,33 @@ export function StoreFormDialog({ open, onOpenChange, store }: Props) {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{isEdit ? "Ubah toko" : "Toko baru"}</DialogTitle>
+          <DialogTitle>{isEdit ? "Ubah Toko" : "Toko Baru"}</DialogTitle>
           <DialogDescription>
-            Kasir akan memakai kode toko untuk masuk.
+            Kasir akan masuk pakai kode toko ini.
           </DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
           <div>
-            <Label htmlFor="store-name">Nama</Label>
+            <Label htmlFor="store-name">Nama toko</Label>
             <Input
               id="store-name"
               autoFocus
-              className="mt-1"
+              placeholder="Contoh: Toko Berkah"
+              aria-invalid={!!errors.name}
               {...register("name")}
             />
             {errors.name && (
-              <p className="mt-1 text-xs text-red-600">{errors.name.message}</p>
+              <p className="mt-2 text-sm font-semibold text-destructive">{errors.name.message}</p>
             )}
           </div>
           <div>
-            <Label htmlFor="store-code">Kode</Label>
+            <Label htmlFor="store-code">Kode toko</Label>
             <Input
               id="store-code"
-              className="mt-1 font-mono uppercase"
-              placeholder="cth. JKT01"
+              className="font-mono uppercase tracking-widest"
+              placeholder="Contoh: JKT01"
               maxLength={10}
+              aria-invalid={!!errors.code}
               {...register("code", {
                 onChange: (e) => {
                   const upper = e.target.value.toUpperCase();
@@ -139,21 +138,19 @@ export function StoreFormDialog({ open, onOpenChange, store }: Props) {
               })}
             />
             {errors.code && (
-              <p className="mt-1 text-xs text-red-600">{errors.code.message}</p>
+              <p className="mt-2 text-sm font-semibold text-destructive">{errors.code.message}</p>
             )}
           </div>
           <div>
-            <Label htmlFor="store-address">Alamat</Label>
+            <Label htmlFor="store-address">Alamat (opsional)</Label>
             <Textarea
               id="store-address"
               rows={3}
-              className="mt-1"
+              placeholder="Alamat toko, untuk catatan internal"
               {...register("address")}
             />
             {errors.address && (
-              <p className="mt-1 text-xs text-red-600">
-                {errors.address.message}
-              </p>
+              <p className="mt-2 text-sm font-semibold text-destructive">{errors.address.message}</p>
             )}
           </div>
           <DialogFooter>
@@ -165,12 +162,12 @@ export function StoreFormDialog({ open, onOpenChange, store }: Props) {
             >
               Batal
             </Button>
-            <Button type="submit" disabled={mutation.isPending}>
+            <Button type="submit" variant="accent" disabled={mutation.isPending}>
               {mutation.isPending
                 ? "Menyimpan…"
                 : isEdit
-                  ? "Simpan perubahan"
-                  : "Buat toko"}
+                  ? "Simpan Perubahan"
+                  : "Buat Toko"}
             </Button>
           </DialogFooter>
         </form>

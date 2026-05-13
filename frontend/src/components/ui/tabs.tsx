@@ -13,8 +13,8 @@ function TabsList({
     <RadixTabs.List
       data-slot="tabs-list"
       className={cn(
-        "inline-flex h-9 items-center gap-1 rounded-lg bg-slate-100 p-1 text-slate-500",
-        className
+        "inline-flex h-14 items-center gap-1 rounded-lg bg-muted p-1.5 text-muted-foreground",
+        className,
       )}
       {...props}
     />
@@ -29,8 +29,8 @@ function TabsTrigger({
     <RadixTabs.Trigger
       data-slot="tabs-trigger"
       className={cn(
-        "inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1 text-sm font-medium transition-all data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm hover:text-slate-900 disabled:pointer-events-none disabled:opacity-50",
-        className
+        "inline-flex h-11 items-center justify-center whitespace-nowrap rounded-md px-5 text-base font-semibold transition-all data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-sm hover:text-foreground disabled:pointer-events-none disabled:opacity-50 focus-visible:ring-3 focus-visible:ring-ring focus:outline-none",
+        className,
       )}
       {...props}
     />
@@ -44,7 +44,7 @@ function TabsContent({
   return (
     <RadixTabs.Content
       data-slot="tabs-content"
-      className={cn("mt-4 focus-visible:outline-none", className)}
+      className={cn("mt-6 focus-visible:outline-none", className)}
       {...props}
     />
   );

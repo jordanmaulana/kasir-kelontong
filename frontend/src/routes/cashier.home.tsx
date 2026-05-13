@@ -1,84 +1,76 @@
-import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
+import { Link, createFileRoute } from "@tanstack/react-router";
 import { useAtom } from "jotai";
-import { ListChecks, LogOut, ScanLine } from "lucide-react";
+import { ListChecks, ScanLine } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
+import { CashierShell } from "@/components/layout/cashier-shell";
 import { CashierGate } from "@/features/cashier-auth/components/cashier-gate";
-import { useCashierLogout } from "@/features/cashier-auth/hooks";
 import { cashierSessionAtom } from "@/features/cashier-auth/state";
 
 export const Route = createFileRoute("/cashier/home")({
   component: () => (
     <CashierGate>
-      <CashierHome />
+      <CashierShell maxWidth="4xl">
+        <CashierHome />
+      </CashierShell>
     </CashierGate>
   ),
 });
 
 function CashierHome() {
   const [session] = useAtom(cashierSessionAtom);
-  const logout = useCashierLogout();
-  const navigate = useNavigate();
-
   if (!session) return null;
 
-  const onLogout = () => {
-    logout.mutate(undefined, {
-      onSettled: () => navigate({ to: "/cashier" }),
-    });
-  };
-
   return (
-    <div className="mx-auto w-full max-w-2xl px-4 py-12">
-      <div className="rounded-2xl bg-white p-8 shadow-sm ring-1 ring-slate-200">
-        <p className="text-sm text-slate-500">Toko</p>
-        <h1 className="mt-1 text-2xl font-semibold text-slate-900">
-          {session.store.name}{" "}
-          <span className="font-mono text-base text-slate-500">
-            ({session.store.code})
-          </span>
-        </h1>
-        <p className="mt-4 text-sm text-slate-600">
-          Halo,{" "}
-          <span className="font-medium text-slate-900">
-            {session.cashier.display_name}
-          </span>
-          . Anda sudah masuk.
+    <div className="space-y-8">
+      <div>
+        <p className="text-sm font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+          Beranda Kasir
         </p>
+        <h1 className="mt-2 text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+          Halo, {session.cashier.display_name}
+        </h1>
+        <p className="mt-2 text-base text-muted-foreground">
+          Anda sudah masuk di toko{" "}
+          <span className="font-semibold text-foreground">{session.store.name}</span>.
+        </p>
+      </div>
 
-        <div className="mt-8 grid gap-3 sm:grid-cols-2">
-          <Link
-            to="/cashier/pos"
-            className="group flex flex-col items-start gap-2 rounded-xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-slate-300 hover:shadow"
-          >
-            <ScanLine className="h-7 w-7 text-emerald-600" />
-            <span className="text-base font-medium text-slate-900">
-              Mulai transaksi
-            </span>
-            <span className="text-xs text-slate-600">
-              Buka layar kasir untuk scan barcode dan terima pembayaran.
-            </span>
-          </Link>
-          <Link
-            to="/cashier/pos/sales"
-            className="group flex flex-col items-start gap-2 rounded-xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-slate-300 hover:shadow"
-          >
-            <ListChecks className="h-7 w-7 text-sky-600" />
-            <span className="text-base font-medium text-slate-900">
-              Penjualan hari ini
-            </span>
-            <span className="text-xs text-slate-600">
-              Lihat daftar transaksi yang sudah kamu kerjakan hari ini.
-            </span>
-          </Link>
-        </div>
+      <div className="grid gap-5 sm:grid-cols-2">
+        <Link
+          to="/cashier/pos"
+          className="group flex flex-col gap-3 rounded-lg border border-border bg-card p-7 shadow-sm transition-all hover:-translate-y-0.5 hover:border-foreground hover:shadow-md"
+        >
+          <div className="flex size-14 items-center justify-center rounded-lg bg-accent text-accent-foreground shadow-sm">
+            <ScanLine className="size-7" strokeWidth={2.4} />
+          </div>
+          <span className="text-xl font-bold tracking-tight text-foreground">
+            Mulai Transaksi
+          </span>
+          <span className="text-base text-muted-foreground">
+            Buka layar kasir. Scan barcode atau cari produk untuk mulai berjualan.
+          </span>
+          <span className="mt-2 inline-flex items-center text-base font-bold text-foreground underline decoration-2 underline-offset-4 group-hover:decoration-accent">
+            Buka kasir →
+          </span>
+        </Link>
 
-        <div className="mt-6 flex justify-end">
-          <Button variant="outline" onClick={onLogout} disabled={logout.isPending}>
-            <LogOut className="mr-1 h-4 w-4" />
-            {logout.isPending ? "Keluar…" : "Keluar"}
-          </Button>
-        </div>
+        <Link
+          to="/cashier/pos/sales"
+          className="group flex flex-col gap-3 rounded-lg border border-border bg-card p-7 shadow-sm transition-all hover:-translate-y-0.5 hover:border-foreground hover:shadow-md"
+        >
+          <div className="flex size-14 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-sm">
+            <ListChecks className="size-7" strokeWidth={2.4} />
+          </div>
+          <span className="text-xl font-bold tracking-tight text-foreground">
+            Penjualan Hari Ini
+          </span>
+          <span className="text-base text-muted-foreground">
+            Lihat daftar transaksi yang sudah Anda kerjakan hari ini.
+          </span>
+          <span className="mt-2 inline-flex items-center text-base font-bold text-foreground underline decoration-2 underline-offset-4 group-hover:decoration-accent">
+            Lihat penjualan →
+          </span>
+        </Link>
       </div>
     </div>
   );

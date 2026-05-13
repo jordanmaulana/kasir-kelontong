@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useCashierLogin } from "@/features/cashier-auth/hooks";
 import { ApiError } from "@/lib/api";
+import { cn } from "@/lib/utils";
 
 const schema = z.object({
   store_code: z
@@ -84,28 +85,29 @@ export function CashierLoginForm() {
             toast.error(err instanceof Error ? err.message : "Login gagal");
           }
         },
-      }
+      },
     );
   };
 
   return (
-    <div className="mx-auto w-full max-w-sm">
+    <div className="w-full max-w-md rounded-lg border border-border bg-card p-8 shadow-sm">
       <div className="mb-6 text-center">
-        <h1 className="text-2xl font-semibold text-slate-900">Masuk Kasir</h1>
-        <p className="mt-1 text-sm text-slate-600">
+        <h1 className="text-2xl font-bold tracking-tight text-foreground">Masuk Kasir</h1>
+        <p className="mt-2 text-base text-muted-foreground">
           Masukkan kode toko + PIN 6 digit
         </p>
       </div>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         <div>
           <Label htmlFor="cashier-store-code">Kode toko</Label>
           <Input
             id="cashier-store-code"
             autoFocus
-            className="mt-1 font-mono uppercase"
-            placeholder="cth. JKT01"
+            className="font-mono uppercase tracking-widest text-xl text-center"
+            placeholder="JKT01"
             maxLength={10}
+            aria-invalid={!!errors.store_code}
             {...register("store_code", {
               onChange: (e) => {
                 const upper = e.target.value.toUpperCase();
@@ -116,17 +118,17 @@ export function CashierLoginForm() {
             })}
           />
           {errors.store_code && (
-            <p className="mt-1 text-xs text-red-600">
+            <p className="mt-2 text-sm font-semibold text-destructive">
               {errors.store_code.message}
             </p>
           )}
         </div>
 
         <div>
-          <Label>PIN</Label>
+          <Label className="text-center block">PIN</Label>
           <PinDots value={pin} />
           {errors.pin && (
-            <p className="mt-1 text-center text-xs text-red-600">
+            <p className="mt-2 text-center text-sm font-semibold text-destructive">
               {errors.pin.message}
             </p>
           )}
@@ -134,28 +136,26 @@ export function CashierLoginForm() {
 
         <input type="hidden" {...register("pin")} />
 
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-3 gap-3">
           {KEYS.map((k) => (
             <KeyButton key={k} onClick={() => appendDigit(k)}>
               {k}
             </KeyButton>
           ))}
-          <KeyButton onClick={clear} variant="outline" aria-label="Bersihkan">
+          <KeyButton onClick={clear} variant="outline" aria-label="Bersihkan PIN">
             C
           </KeyButton>
           <KeyButton onClick={() => appendDigit("0")}>0</KeyButton>
-          <KeyButton
-            onClick={backspace}
-            variant="outline"
-            aria-label="Hapus satu digit"
-          >
-            <Delete className="h-6 w-6" />
+          <KeyButton onClick={backspace} variant="outline" aria-label="Hapus satu digit">
+            <Delete className="size-7" />
           </KeyButton>
         </div>
 
         <Button
           type="submit"
-          className="h-12 w-full text-base"
+          variant="accent"
+          size="xl"
+          className="w-full"
           disabled={login.isPending || pin.length !== 6}
         >
           {login.isPending ? "Memeriksa…" : "Masuk"}
@@ -167,15 +167,14 @@ export function CashierLoginForm() {
 
 function PinDots({ value }: { value: string }) {
   return (
-    <div className="mt-2 flex justify-center gap-3">
+    <div className="mt-3 flex justify-center gap-3">
       {Array.from({ length: 6 }).map((_, i) => (
         <span
           key={i}
-          className={
-            i < value.length
-              ? "h-4 w-4 rounded-full bg-slate-900"
-              : "h-4 w-4 rounded-full bg-slate-200"
-          }
+          className={cn(
+            "size-5 rounded-full transition-all",
+            i < value.length ? "bg-foreground scale-100" : "bg-border scale-90",
+          )}
         />
       ))}
     </div>
@@ -198,7 +197,7 @@ function KeyButton({
       type="button"
       variant={variant}
       onClick={onClick}
-      className="h-16 text-2xl font-medium"
+      className="h-20 text-3xl font-bold"
       {...rest}
     >
       {children}

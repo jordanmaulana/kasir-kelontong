@@ -43,7 +43,7 @@ export function DeactivateCashierDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-sm">
         <DialogHeader>
-          <DialogTitle>Nonaktifkan kasir?</DialogTitle>
+          <DialogTitle>Nonaktifkan Kasir?</DialogTitle>
           <DialogDescription>
             {cashier ? (
               <>

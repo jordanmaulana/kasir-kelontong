@@ -1,4 +1,4 @@
-import { Pencil, Plus, UserMinus, UserPlus } from "lucide-react";
+import { Pencil, Plus, UserMinus, UserPlus, Users } from "lucide-react";
 import { useState } from "react";
 import { toast } from "react-toastify";
 
@@ -13,11 +13,13 @@ import {
 } from "@/components/ui/table";
 import { CashierFormDialog } from "@/features/cashiers/components/cashier-form-dialog";
 import { DeactivateCashierDialog } from "@/features/cashiers/components/deactivate-cashier-dialog";
-import {
-  useCashiers,
-  useUpdateCashier,
-} from "@/features/cashiers/hooks";
+import { useCashiers, useUpdateCashier } from "@/features/cashiers/hooks";
 import type { Cashier } from "@/features/cashiers/types";
+
+const dateFmt = new Intl.DateTimeFormat("id-ID", {
+  dateStyle: "medium",
+  timeStyle: "short",
+});
 
 interface Props {
   storeId: string;
@@ -53,29 +55,29 @@ export function CashiersTab({ storeId }: Props) {
         onSuccess: () => toast.success(`${cashier.display_name} diaktifkan`),
         onError: (err) =>
           toast.error(err instanceof Error ? err.message : "Permintaan gagal"),
-      }
+      },
     );
   };
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
+    <div className="space-y-6">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h2 className="text-base font-medium text-slate-900">Kasir</h2>
-          <p className="text-sm text-slate-600">
+          <h2 className="text-lg font-bold text-foreground">Daftar Kasir</h2>
+          <p className="mt-1 text-base text-muted-foreground">
             Buat akun kasir dengan PIN 6 digit. PIN unik dalam satu toko.
           </p>
         </div>
-        <Button onClick={openCreate}>
-          <Plus className="mr-1 h-4 w-4" />
-          Kasir baru
+        <Button onClick={openCreate} variant="accent">
+          <Plus className="size-5" />
+          Kasir Baru
         </Button>
       </div>
 
       {isLoading ? (
-        <p className="text-sm text-slate-500">Memuat…</p>
+        <p className="text-base text-muted-foreground">Memuat…</p>
       ) : isError ? (
-        <p className="text-sm text-red-600">
+        <p className="text-base font-semibold text-destructive">
           {error instanceof Error ? error.message : "Gagal memuat kasir"}
         </p>
       ) : !cashiers || cashiers.length === 0 ? (
@@ -85,23 +87,23 @@ export function CashiersTab({ storeId }: Props) {
           <TableHeader>
             <TableRow>
               <TableHead>Nama</TableHead>
-              <TableHead className="w-28">Status</TableHead>
-              <TableHead className="w-40">Login terakhir</TableHead>
+              <TableHead className="w-32">Status</TableHead>
+              <TableHead className="w-48">Login terakhir</TableHead>
               <TableHead className="w-32 text-right">Aksi</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {cashiers.map((cashier) => (
-              <TableRow key={cashier.id}>
-                <TableCell className="font-medium text-slate-900">
+              <TableRow key={cashier.id} className="h-16">
+                <TableCell className="font-semibold text-foreground">
                   {cashier.display_name}
                 </TableCell>
                 <TableCell>
                   <StatusBadge active={cashier.active} />
                 </TableCell>
-                <TableCell className="text-slate-500">
+                <TableCell className="text-muted-foreground">
                   {cashier.last_login_at
-                    ? new Date(cashier.last_login_at).toLocaleString("id-ID")
+                    ? dateFmt.format(new Date(cashier.last_login_at))
                     : "—"}
                 </TableCell>
                 <TableCell className="text-right">
@@ -112,7 +114,7 @@ export function CashiersTab({ storeId }: Props) {
                       aria-label={`Ubah ${cashier.display_name}`}
                       onClick={() => openEdit(cashier)}
                     >
-                      <Pencil className="h-4 w-4" />
+                      <Pencil className="size-5" />
                     </Button>
                     {cashier.active ? (
                       <Button
@@ -120,8 +122,9 @@ export function CashiersTab({ storeId }: Props) {
                         variant="ghost"
                         aria-label={`Nonaktifkan ${cashier.display_name}`}
                         onClick={() => openDeactivate(cashier)}
+                        className="text-destructive hover:bg-destructive/10"
                       >
-                        <UserMinus className="h-4 w-4 text-red-600" />
+                        <UserMinus className="size-5" />
                       </Button>
                     ) : (
                       <Button
@@ -130,8 +133,9 @@ export function CashiersTab({ storeId }: Props) {
                         aria-label={`Aktifkan ${cashier.display_name}`}
                         onClick={() => onReactivate(cashier)}
                         disabled={reactivate.isPending}
+                        className="text-[color:var(--color-success)] hover:bg-[color:var(--color-success)]/10"
                       >
-                        <UserPlus className="h-4 w-4 text-emerald-600" />
+                        <UserPlus className="size-5" />
                       </Button>
                     )}
                   </div>
@@ -163,10 +167,17 @@ function StatusBadge({ active }: { active: boolean }) {
     <span
       className={
         active
-          ? "inline-flex items-center rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700"
-          : "inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600"
+          ? "inline-flex items-center gap-1.5 rounded-full bg-[color:var(--color-success)]/12 px-3 py-1 text-sm font-bold text-[color:var(--color-success)]"
+          : "inline-flex items-center gap-1.5 rounded-full bg-muted px-3 py-1 text-sm font-semibold text-muted-foreground"
       }
     >
+      <span
+        aria-hidden="true"
+        className={
+          "size-2 rounded-full " +
+          (active ? "bg-[color:var(--color-success)]" : "bg-muted-foreground/50")
+        }
+      />
       {active ? "Aktif" : "Nonaktif"}
     </span>
   );
@@ -174,14 +185,19 @@ function StatusBadge({ active }: { active: boolean }) {
 
 function EmptyState({ onCreate }: { onCreate: () => void }) {
   return (
-    <div className="rounded-xl border border-dashed border-slate-300 bg-white p-10 text-center">
-      <h3 className="text-base font-medium text-slate-900">Belum ada kasir</h3>
-      <p className="mt-1 text-sm text-slate-600">
-        Tambahkan kasir untuk toko ini agar mereka bisa masuk ke kasir.
-      </p>
-      <Button className="mt-4" onClick={onCreate}>
-        <Plus className="mr-1 h-4 w-4" />
-        Kasir baru
+    <div className="flex flex-col items-center gap-4 rounded-lg border-2 border-dashed border-border bg-card/60 p-10 text-center">
+      <div className="flex size-14 items-center justify-center rounded-full bg-accent/20">
+        <Users className="size-7" strokeWidth={2} />
+      </div>
+      <div>
+        <h3 className="text-lg font-bold text-foreground">Belum ada kasir</h3>
+        <p className="mt-1 max-w-md text-base text-muted-foreground">
+          Tambahkan kasir untuk toko ini supaya mereka bisa masuk ke layar kasir.
+        </p>
+      </div>
+      <Button variant="accent" onClick={onCreate}>
+        <Plus className="size-5" />
+        Tambah Kasir
       </Button>
     </div>
   );

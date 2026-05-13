@@ -1,35 +1,54 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ChevronLeft } from "lucide-react";
+import { ChevronLeft, Store } from "lucide-react";
 
 import { EmailAuthForm } from "@/features/auth/components/email-auth-form";
 import { GoogleSignInCard } from "@/features/auth/components/google-sign-in-card";
 
 export const Route = createFileRoute("/login")({
-  component: () => (
-    <div className="flex min-h-screen flex-col items-center px-4 py-8">
-      <div className="w-full max-w-sm">
+  component: LoginPage,
+});
+
+function LoginPage() {
+  return (
+    <div className="flex min-h-screen flex-col bg-background">
+      <header className="flex items-center justify-between border-b border-border bg-card/80 px-5 py-4 sm:px-8">
         <Link
           to="/"
-          className="inline-flex items-center gap-1 text-sm text-slate-600 hover:text-slate-900"
+          className="inline-flex items-center gap-2 text-base font-semibold text-muted-foreground hover:text-foreground"
         >
-          <ChevronLeft className="h-4 w-4" /> Kembali
+          <ChevronLeft className="size-5" /> Kembali
         </Link>
-      </div>
-      <div className="flex w-full max-w-sm flex-1 flex-col items-center justify-center gap-4">
-        <EmailAuthForm mode="login" />
-        <div className="flex w-full items-center gap-3 text-xs text-slate-500">
-          <div className="h-px flex-1 bg-slate-200" />
-          <span>atau</span>
-          <div className="h-px flex-1 bg-slate-200" />
+        <div className="flex items-center gap-2">
+          <div className="flex size-9 items-center justify-center rounded-md bg-primary text-primary-foreground">
+            <Store className="size-5" strokeWidth={2.4} />
+          </div>
+          <span className="text-base font-bold tracking-tight text-foreground">KasirKelontong</span>
         </div>
-        <GoogleSignInCard />
-        <p className="mt-2 text-sm text-slate-600">
-          Anda kasir?{" "}
-          <Link to="/cashier" className="font-medium text-slate-900 underline">
-            Masuk sebagai Kasir
-          </Link>
-        </p>
-      </div>
+      </header>
+
+      <main className="flex flex-1 items-center justify-center px-5 py-10 sm:py-14">
+        <div className="w-full max-w-md space-y-5">
+          <EmailAuthForm mode="login" />
+
+          <div className="flex items-center gap-3 text-sm font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+            <div className="h-px flex-1 bg-border" />
+            <span>Atau</span>
+            <div className="h-px flex-1 bg-border" />
+          </div>
+
+          <GoogleSignInCard />
+
+          <div className="rounded-lg border-2 border-dashed border-border bg-card/60 p-5 text-center">
+            <p className="text-base text-foreground">Saya seorang kasir</p>
+            <Link
+              to="/cashier"
+              className="mt-2 inline-flex items-center gap-1 text-base font-bold text-foreground underline decoration-2 underline-offset-4 hover:decoration-accent"
+            >
+              Masuk sebagai Kasir →
+            </Link>
+          </div>
+        </div>
+      </main>
     </div>
-  ),
-});
+  );
+}

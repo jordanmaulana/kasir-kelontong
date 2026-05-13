@@ -139,7 +139,7 @@ export function CashierFormDialog({
       <DialogContent>
         <DialogHeader>
           <DialogTitle>
-            {isEdit ? "Ubah kasir" : "Kasir baru"}
+            {isEdit ? "Ubah Kasir" : "Kasir Baru"}
           </DialogTitle>
           <DialogDescription>
             Kasir memakai kode toko + PIN 6 digit untuk masuk.
@@ -151,12 +151,12 @@ export function CashierFormDialog({
             <Input
               id="cashier-name"
               autoFocus
-              className="mt-1"
+              className=""
               maxLength={80}
               {...register("display_name")}
             />
             {errors.display_name && (
-              <p className="mt-1 text-xs text-red-600">
+              <p className="mt-2 text-sm font-semibold text-destructive">
                 {errors.display_name.message}
               </p>
             )}
@@ -171,12 +171,12 @@ export function CashierFormDialog({
               inputMode="numeric"
               autoComplete="new-password"
               maxLength={6}
-              className="mt-1 font-mono tracking-widest"
+              className="font-mono tracking-widest text-center text-2xl"
               placeholder={isEdit ? "Kosongkan jika tidak diubah" : "6 digit"}
               {...register("pin")}
             />
             {errors.pin && (
-              <p className="mt-1 text-xs text-red-600">{errors.pin.message}</p>
+              <p className="mt-2 text-sm font-semibold text-destructive">{errors.pin.message}</p>
             )}
           </div>
           <div>
@@ -187,12 +187,12 @@ export function CashierFormDialog({
               inputMode="numeric"
               autoComplete="new-password"
               maxLength={6}
-              className="mt-1 font-mono tracking-widest"
+              className="font-mono tracking-widest text-center text-2xl"
               placeholder={isEdit ? "Kosongkan jika tidak diubah" : "Ulangi PIN"}
               {...register("confirm_pin")}
             />
             {errors.confirm_pin && (
-              <p className="mt-1 text-xs text-red-600">
+              <p className="mt-2 text-sm font-semibold text-destructive">
                 {errors.confirm_pin.message}
               </p>
             )}
@@ -206,12 +206,12 @@ export function CashierFormDialog({
             >
               Batal
             </Button>
-            <Button type="submit" disabled={mutation.isPending}>
+            <Button type="submit" variant="accent" disabled={mutation.isPending}>
               {mutation.isPending
                 ? "Menyimpan…"
                 : isEdit
-                  ? "Simpan perubahan"
-                  : "Buat kasir"}
+                  ? "Simpan Perubahan"
+                  : "Buat Kasir"}
             </Button>
           </DialogFooter>
         </form>

@@ -1,16 +1,15 @@
+import { CheckCircle2 } from "lucide-react";
+
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Money } from "@/components/ui/money";
 import type { Sale } from "@/features/sales/types";
-
-const fmtIDR = (n: number) =>
-  new Intl.NumberFormat("id-ID").format(Number.isFinite(n) ? n : 0);
 
 interface Props {
   sale: Sale;
@@ -25,41 +24,45 @@ export function SaleSuccessDialog({ sale, onClose, onNewSale }: Props) {
     <Dialog open onOpenChange={(open) => !open && onClose()}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Transaksi tersimpan</DialogTitle>
-          <DialogDescription>
-            ID transaksi <span className="font-mono">{sale.id}</span>
-          </DialogDescription>
+          <div className="mb-2 flex items-center gap-3">
+            <div className="flex size-12 items-center justify-center rounded-full bg-[color:var(--color-success)]/15 text-[color:var(--color-success)]">
+              <CheckCircle2 className="size-7" strokeWidth={2.4} />
+            </div>
+            <DialogTitle>Transaksi Berhasil</DialogTitle>
+          </div>
         </DialogHeader>
 
-        <div className="space-y-3">
-          <div className="rounded-lg bg-emerald-50 p-4 text-center">
-            <p className="text-xs uppercase tracking-wide text-emerald-700">
+        <div className="space-y-5">
+          <div className="rounded-lg bg-[color:var(--color-success)]/12 p-6 text-center ring-1 ring-[color:var(--color-success)]/25">
+            <p className="text-sm font-semibold uppercase tracking-[0.16em] text-[color:var(--color-success)]">
               Kembalian
             </p>
-            <p className="mt-1 font-mono text-4xl font-bold text-emerald-700">
-              Rp{fmtIDR(sale.change)}
-            </p>
+            <div className="mt-2">
+              <Money
+                value={sale.change}
+                size="3xl"
+                className="text-[color:var(--color-success)]"
+              />
+            </div>
           </div>
 
-          <dl className="space-y-1.5 text-sm">
-            <div className="flex justify-between">
-              <dt className="text-slate-600">Item</dt>
-              <dd className="font-mono">
+          <dl className="space-y-3 text-base">
+            <div className="flex items-baseline justify-between">
+              <dt className="text-muted-foreground">Item</dt>
+              <dd className="font-semibold tabular-nums text-foreground">
                 {sale.lines.length} item · {totalUnits} unit
               </dd>
             </div>
-            <div className="flex justify-between">
-              <dt className="text-slate-600">Total bayar</dt>
-              <dd className="font-mono">Rp{fmtIDR(sale.subtotal)}</dd>
+            <div className="flex items-baseline justify-between">
+              <dt className="text-muted-foreground">Total bayar</dt>
+              <dd>
+                <Money value={sale.subtotal} size="base" />
+              </dd>
             </div>
-            <div className="flex justify-between">
-              <dt className="text-slate-600">Uang diterima</dt>
-              <dd className="font-mono">Rp{fmtIDR(sale.tendered)}</dd>
-            </div>
-            <div className="flex justify-between border-t border-slate-200 pt-1.5">
-              <dt className="font-medium text-slate-900">Kembalian</dt>
-              <dd className="font-mono font-semibold">
-                Rp{fmtIDR(sale.change)}
+            <div className="flex items-baseline justify-between">
+              <dt className="text-muted-foreground">Uang diterima</dt>
+              <dd>
+                <Money value={sale.tendered} size="base" />
               </dd>
             </div>
           </dl>
@@ -69,8 +72,8 @@ export function SaleSuccessDialog({ sale, onClose, onNewSale }: Props) {
           <Button variant="outline" onClick={onClose}>
             Tutup
           </Button>
-          <Button onClick={onNewSale} autoFocus>
-            Transaksi baru
+          <Button variant="accent" onClick={onNewSale} autoFocus>
+            Transaksi Baru
           </Button>
         </DialogFooter>
       </DialogContent>

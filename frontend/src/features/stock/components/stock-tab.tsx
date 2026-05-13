@@ -3,6 +3,7 @@ import { useMemo, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Money } from "@/components/ui/money";
 import {
   Table,
   TableBody,
@@ -14,7 +15,11 @@ import {
 import { AdjustmentDialog } from "@/features/stock/components/adjustment-dialog";
 import { useStock } from "@/features/stock/hooks";
 import type { StockItem } from "@/features/stock/types";
-import { formatIDR } from "@/features/stock/format";
+
+const dateFmt = new Intl.DateTimeFormat("id-ID", {
+  dateStyle: "medium",
+  timeStyle: "short",
+});
 
 interface Props {
   storeId: string;
@@ -28,29 +33,29 @@ export function StockTab({ storeId }: Props) {
   const empty = useMemo(() => !items || items.length === 0, [items]);
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between gap-3">
+    <div className="space-y-6">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h2 className="text-base font-medium text-slate-900">Stok per toko</h2>
-          <p className="text-sm text-slate-600">
-            Jumlah saat ini per produk. Klik "Sesuaikan" untuk koreksi manual.
+          <h2 className="text-lg font-bold text-foreground">Stok per Toko</h2>
+          <p className="mt-1 text-base text-muted-foreground">
+            Jumlah saat ini per produk. Klik &ldquo;Sesuaikan&rdquo; untuk koreksi manual.
           </p>
         </div>
-        <div className="relative w-64">
-          <Search className="pointer-events-none absolute left-2 top-2.5 h-4 w-4 text-slate-400" />
+        <div className="relative w-full sm:w-72">
+          <Search className="pointer-events-none absolute left-4 top-1/2 size-5 -translate-y-1/2 text-muted-foreground" />
           <Input
             value={q}
             onChange={(e) => setQ(e.target.value)}
             placeholder="Cari nama / barcode"
-            className="pl-8"
+            className="pl-12"
           />
         </div>
       </div>
 
       {isLoading ? (
-        <p className="text-sm text-slate-500">Memuat…</p>
+        <p className="text-base text-muted-foreground">Memuat…</p>
       ) : isError ? (
-        <p className="text-sm text-red-600">
+        <p className="text-base font-semibold text-destructive">
           {error instanceof Error ? error.message : "Gagal memuat stok"}
         </p>
       ) : empty ? (
@@ -60,40 +65,34 @@ export function StockTab({ storeId }: Props) {
           <TableHeader>
             <TableRow>
               <TableHead>Produk</TableHead>
-              <TableHead className="w-32 font-mono text-xs">Barcode</TableHead>
-              <TableHead className="w-24 text-right">Harga</TableHead>
-              <TableHead className="w-20 text-right">Stok</TableHead>
-              <TableHead className="w-40">Pergerakan terakhir</TableHead>
-              <TableHead className="w-32 text-right">Aksi</TableHead>
+              <TableHead className="w-40">Barcode</TableHead>
+              <TableHead className="w-32 text-right">Harga</TableHead>
+              <TableHead className="w-28 text-right">Stok</TableHead>
+              <TableHead className="w-48">Pergerakan Terakhir</TableHead>
+              <TableHead className="w-40 text-right">Aksi</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {items!.map((item) => (
-              <TableRow key={item.product_id}>
-                <TableCell className="font-medium text-slate-900">
-                  {item.name}
-                </TableCell>
-                <TableCell className="font-mono text-xs text-slate-500">
+              <TableRow key={item.product_id} className="h-16">
+                <TableCell className="font-semibold text-foreground">{item.name}</TableCell>
+                <TableCell className="font-mono text-muted-foreground">
                   {item.barcode ?? "—"}
                 </TableCell>
-                <TableCell className="text-right text-slate-600">
-                  {formatIDR(item.sell_price)}
+                <TableCell className="text-right">
+                  <Money value={item.sell_price} size="base" muted />
                 </TableCell>
                 <TableCell className="text-right">
                   <QtyBadge qty={item.qty} />
                 </TableCell>
-                <TableCell className="text-slate-500">
+                <TableCell className="text-muted-foreground">
                   {item.last_movement_at
-                    ? new Date(item.last_movement_at).toLocaleString("id-ID")
+                    ? dateFmt.format(new Date(item.last_movement_at))
                     : "—"}
                 </TableCell>
                 <TableCell className="text-right">
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => setTarget(item)}
-                  >
-                    <SlidersHorizontal className="mr-1 h-4 w-4" />
+                  <Button size="sm" variant="outline" onClick={() => setTarget(item)}>
+                    <SlidersHorizontal className="size-5" />
                     Sesuaikan
                   </Button>
                 </TableCell>
@@ -116,13 +115,13 @@ export function StockTab({ storeId }: Props) {
 function QtyBadge({ qty }: { qty: number }) {
   const cls =
     qty <= 0
-      ? "bg-red-50 text-red-700"
+      ? "bg-destructive/12 text-destructive ring-1 ring-destructive/30"
       : qty < 5
-        ? "bg-amber-50 text-amber-700"
-        : "bg-emerald-50 text-emerald-700";
+        ? "bg-[color:var(--color-warning)]/12 text-[color:var(--color-warning)] ring-1 ring-[color:var(--color-warning)]/30"
+        : "bg-[color:var(--color-success)]/12 text-[color:var(--color-success)] ring-1 ring-[color:var(--color-success)]/30";
   return (
     <span
-      className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ${cls}`}
+      className={`inline-flex min-w-12 items-center justify-center rounded-md px-3 py-1 text-base font-bold tabular-nums ${cls}`}
     >
       {qty}
     </span>
@@ -131,14 +130,14 @@ function QtyBadge({ qty }: { qty: number }) {
 
 function EmptyState({ hasQuery }: { hasQuery: boolean }) {
   return (
-    <div className="rounded-xl border border-dashed border-slate-300 bg-white p-10 text-center">
-      <h3 className="text-base font-medium text-slate-900">
-        {hasQuery ? "Tidak ada produk cocok" : "Belum ada produk"}
+    <div className="rounded-lg border-2 border-dashed border-border bg-card/60 p-10 text-center">
+      <h3 className="text-lg font-bold text-foreground">
+        {hasQuery ? "Tidak ada produk cocok" : "Belum ada stok"}
       </h3>
-      <p className="mt-1 text-sm text-slate-600">
+      <p className="mt-2 text-base text-muted-foreground">
         {hasQuery
-          ? "Coba kata kunci lain atau hapus filter."
-          : "Tambahkan produk di menu Katalog dulu, lalu lakukan penerimaan stok."}
+          ? "Coba kata kunci lain atau hapus pencarian."
+          : "Tambahkan produk di menu Katalog, lalu lakukan kulakan untuk mengisi stok."}
       </p>
     </div>
   );

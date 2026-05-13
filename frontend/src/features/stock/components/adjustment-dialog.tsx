@@ -19,6 +19,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useAdjustment } from "@/features/stock/hooks";
 import type { AdjustmentInput, StockItem } from "@/features/stock/types";
 import { ApiError } from "@/lib/api";
+import { cn } from "@/lib/utils";
 
 const schema = z
   .object({
@@ -95,15 +96,15 @@ export function AdjustmentDialog({ open, onOpenChange, storeId, item }: Props) {
     const body: AdjustmentInput =
       values.mode === "target"
         ? {
-          product_id: item.product_id,
-          target_qty: Number(values.target_qty),
-          note: values.note,
-        }
+            product_id: item.product_id,
+            target_qty: Number(values.target_qty),
+            note: values.note,
+          }
         : {
-          product_id: item.product_id,
-          delta: Number(values.delta),
-          note: values.note,
-        };
+            product_id: item.product_id,
+            delta: Number(values.delta),
+            note: values.note,
+          };
     adjust.mutate(body, {
       onSuccess: () => {
         toast.success("Stok disesuaikan");
@@ -114,7 +115,7 @@ export function AdjustmentDialog({ open, onOpenChange, storeId, item }: Props) {
           toast.error(
             typeof err.data === "object" && err.data && "detail" in err.data
               ? String((err.data as { detail: unknown }).detail)
-              : err.message
+              : err.message,
           );
         } else {
           toast.error(err instanceof Error ? err.message : "Permintaan gagal");
@@ -127,22 +128,43 @@ export function AdjustmentDialog({ open, onOpenChange, storeId, item }: Props) {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Sesuaikan stok</DialogTitle>
+          <DialogTitle>Sesuaikan Stok</DialogTitle>
           <DialogDescription>
-            {item.name} — stok saat ini <strong>{item.qty}</strong>
+            {item.name} — stok saat ini{" "}
+            <strong className="font-mono text-foreground">{item.qty}</strong>
           </DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          <fieldset className="space-y-2">
-            <Label>Mode</Label>
-            <div className="flex gap-4 text-sm">
-              <label className="inline-flex items-center gap-2">
-                <input type="radio" value="target" {...register("mode")} />
-                Set ke jumlah
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+          <fieldset>
+            <Label>Cara penyesuaian</Label>
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+              <label
+                className={cn(
+                  "flex cursor-pointer flex-col rounded-md border-2 p-4 transition-colors",
+                  mode === "target"
+                    ? "border-foreground bg-muted"
+                    : "border-border bg-card hover:border-foreground/40",
+                )}
+              >
+                <input type="radio" value="target" className="sr-only" {...register("mode")} />
+                <span className="text-base font-bold">Set ke Jumlah</span>
+                <span className="mt-1 text-sm text-muted-foreground">
+                  Tentukan jumlah akhir stok
+                </span>
               </label>
-              <label className="inline-flex items-center gap-2">
-                <input type="radio" value="delta" {...register("mode")} />
-                Ditambahi atau dikurangi
+              <label
+                className={cn(
+                  "flex cursor-pointer flex-col rounded-md border-2 p-4 transition-colors",
+                  mode === "delta"
+                    ? "border-foreground bg-muted"
+                    : "border-border bg-card hover:border-foreground/40",
+                )}
+              >
+                <input type="radio" value="delta" className="sr-only" {...register("mode")} />
+                <span className="text-base font-bold">Tambah / Kurangi</span>
+                <span className="mt-1 text-sm text-muted-foreground">
+                  Selisih dari jumlah sekarang
+                </span>
               </label>
             </div>
           </fieldset>
@@ -155,28 +177,30 @@ export function AdjustmentDialog({ open, onOpenChange, storeId, item }: Props) {
                 type="number"
                 inputMode="numeric"
                 min={0}
-                className="mt-1"
+                className="text-right font-mono text-xl"
+                aria-invalid={!!errors.target_qty}
                 {...register("target_qty")}
               />
               {errors.target_qty && (
-                <p className="mt-1 text-xs text-red-600">
+                <p className="mt-2 text-sm font-semibold text-destructive">
                   {errors.target_qty.message}
                 </p>
               )}
             </div>
           ) : (
             <div>
-              <Label htmlFor="adj-delta">Jumlah (boleh negatif)</Label>
+              <Label htmlFor="adj-delta">Selisih (boleh negatif)</Label>
               <Input
                 id="adj-delta"
                 type="number"
                 inputMode="numeric"
-                className="mt-1"
+                className="text-right font-mono text-xl"
                 placeholder="+5 atau -3"
+                aria-invalid={!!errors.delta}
                 {...register("delta")}
               />
               {errors.delta && (
-                <p className="mt-1 text-xs text-red-600">
+                <p className="mt-2 text-sm font-semibold text-destructive">
                   {errors.delta.message}
                 </p>
               )}
@@ -187,13 +211,13 @@ export function AdjustmentDialog({ open, onOpenChange, storeId, item }: Props) {
             <Label htmlFor="adj-note">Catatan</Label>
             <Textarea
               id="adj-note"
-              rows={2}
-              className="mt-1"
-              placeholder="cth. rusak, hilang, stok opname"
+              rows={3}
+              placeholder="Contoh: rusak, hilang, stok opname"
+              aria-invalid={!!errors.note}
               {...register("note")}
             />
             {errors.note && (
-              <p className="mt-1 text-xs text-red-600">{errors.note.message}</p>
+              <p className="mt-2 text-sm font-semibold text-destructive">{errors.note.message}</p>
             )}
           </div>
 
@@ -206,7 +230,7 @@ export function AdjustmentDialog({ open, onOpenChange, storeId, item }: Props) {
             >
               Batal
             </Button>
-            <Button type="submit" disabled={adjust.isPending}>
+            <Button type="submit" variant="accent" disabled={adjust.isPending}>
               {adjust.isPending ? "Menyimpan…" : "Simpan"}
             </Button>
           </DialogFooter>
@@ -215,3 +239,4 @@ export function AdjustmentDialog({ open, onOpenChange, storeId, item }: Props) {
     </Dialog>
   );
 }
+

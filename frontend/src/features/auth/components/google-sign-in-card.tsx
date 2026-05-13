@@ -44,12 +44,13 @@ export function GoogleSignInCard() {
   }, [clientId, signIn, navigate]);
 
   return (
-    <div className="w-full max-w-sm rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-      <h1 className="text-xl font-semibold">Masuk</h1>
-      <p className="mt-1 text-sm text-slate-600">Lanjutkan dengan Google.</p>
-      <div ref={ref} className="mt-6 flex justify-center" />
+    <div className="w-full rounded-lg border border-border bg-card p-6 shadow-sm">
+      <p className="mb-4 text-base font-semibold text-foreground">Atau gunakan akun Google</p>
+      <div ref={ref} className="flex justify-center" />
       {!clientId && (
-        <p className="mt-4 text-xs text-red-600">VITE_GOOGLE_CLIENT_ID belum diatur.</p>
+        <p className="mt-3 text-sm font-semibold text-destructive">
+          VITE_GOOGLE_CLIENT_ID belum diatur.
+        </p>
       )}
     </div>
   );

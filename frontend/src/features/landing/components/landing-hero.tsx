@@ -5,67 +5,68 @@ import { Button } from "@/components/ui/button";
 
 export function LandingHero() {
   return (
-    <section
-      aria-labelledby="hero-title"
-      className="relative overflow-hidden"
-    >
+    <section aria-labelledby="hero-title" className="relative overflow-hidden">
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_top,theme(colors.amber.50),transparent_60%)]"
+        className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_top,rgba(232,185,49,0.25),transparent_60%)]"
       />
-      <div className="mx-auto max-w-4xl px-4 py-16 sm:px-6 md:py-24">
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 -z-10 opacity-[0.08]"
+        style={{
+          backgroundImage:
+            "linear-gradient(to right, var(--color-foreground) 1px, transparent 1px), linear-gradient(to bottom, var(--color-foreground) 1px, transparent 1px)",
+          backgroundSize: "36px 36px",
+        }}
+      />
+      <div className="mx-auto max-w-5xl px-5 py-16 sm:px-8 md:py-24">
         <div className="flex flex-col items-start">
-          <span className="inline-flex items-center rounded-full bg-amber-50 px-3 py-1 text-sm font-medium text-amber-800 ring-1 ring-amber-200">
-            Aplikasi kasir untuk warung & toko kelontong
+          <span className="inline-flex items-center rounded-full bg-accent/20 px-4 py-1.5 text-sm font-bold uppercase tracking-[0.16em] text-foreground ring-1 ring-accent/40">
+            Aplikasi kasir untuk warung &amp; kelontong
           </span>
 
           <h1
             id="hero-title"
-            className="mt-6 text-4xl font-semibold tracking-tight text-neutral-900 md:text-6xl"
+            className="mt-7 text-4xl font-bold leading-[1.05] tracking-tight text-foreground md:text-6xl lg:text-7xl"
           >
             Catat penjualan toko Anda.
-            <span className="block text-amber-700">Dari HP.</span>
+            <span className="block text-[color:var(--color-muted-foreground)]">
+              Tanpa ribet.
+            </span>
           </h1>
 
-          <p className="mt-5 max-w-2xl text-lg text-neutral-600 md:text-xl">
-            Aplikasi kasir sederhana untuk warung dan toko kelontong. Catat
-            barang masuk, jualan harian, dan sisa stok — semua di satu tempat.
-            Bisa dipakai di HP, tablet, atau komputer.
+          <p className="mt-6 max-w-2xl text-lg text-muted-foreground md:text-xl">
+            Aplikasi kasir sederhana untuk warung dan toko kelontong. Catat barang masuk,
+            jualan harian, dan sisa stok — semua di satu tempat. Bisa dipakai di HP,
+            tablet, atau komputer.
           </p>
 
           <div className="mt-8 flex w-full flex-col gap-3 sm:flex-row sm:items-center">
-            <Button
-              asChild
-              className="min-h-14 bg-amber-600 px-8 text-base font-medium text-white hover:bg-amber-700"
-            >
+            <Button asChild variant="accent" size="xl">
               <Link to="/register">
                 Daftar Gratis
-                <ArrowRight className="size-5" />
+                <ArrowRight className="size-6" />
               </Link>
             </Button>
-            <Button
-              asChild
-              variant="outline"
-              className="min-h-14 px-8 text-base font-medium"
-            >
+            <Button asChild variant="outline" size="xl">
               <Link to="/login">Masuk sebagai Pemilik</Link>
             </Button>
           </div>
 
-          <div className="mt-6">
+          <div className="mt-8 rounded-lg border-2 border-dashed border-border bg-card/60 px-5 py-4">
             <Link
               to="/cashier"
-              className="text-base font-medium text-neutral-800 underline underline-offset-4 hover:text-amber-700"
+              className="text-base font-bold text-foreground underline decoration-2 underline-offset-4 hover:decoration-accent"
             >
               Saya kasir, mau masuk →
             </Link>
-            <p className="mt-1 text-sm text-neutral-500">
-              Kasir login lewat kode toko & PIN.
+            <p className="mt-1 text-sm text-muted-foreground">
+              Kasir login pakai kode toko &amp; PIN 6 digit.
             </p>
           </div>
 
-          <div className="mt-8 flex items-center gap-2 text-sm text-neutral-600">
-            <ShieldCheck className="size-4 text-amber-600" />
+          <div className="mt-8 flex items-center gap-2 text-base text-muted-foreground">
+            <ShieldCheck className="size-5 text-accent" strokeWidth={2.4} />
             <span>Gratis untuk 1 toko. Tanpa kartu kredit.</span>
           </div>
         </div>

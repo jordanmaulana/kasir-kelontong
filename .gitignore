@@ -17,3 +17,4 @@ static/output.css
 frontend/src/routeTree.gen.ts
 .sales/
 db.sqlite3*
+.superpowers/

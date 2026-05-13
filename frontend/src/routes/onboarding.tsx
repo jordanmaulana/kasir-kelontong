@@ -1,6 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { createFileRoute } from "@tanstack/react-router";
-import { LogOut } from "lucide-react";
+import { LogOut, Store } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { toast } from "react-toastify";
 import { z } from "zod";
@@ -71,51 +71,59 @@ function OnboardingRoute() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center px-4 py-8">
-      <div className="w-full max-w-md rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <h1 className="text-xl font-semibold text-slate-900">
-              Siapkan toko pertama Anda
-            </h1>
-            <p className="mt-1 text-sm text-slate-600">
-              Kasir akan masuk menggunakan kode toko. Anda dapat menambah toko
-              lain nanti.
-            </p>
+    <div className="flex min-h-screen items-center justify-center bg-background px-5 py-10">
+      <div className="w-full max-w-2xl rounded-lg border border-border bg-card p-8 shadow-sm sm:p-10">
+        <div className="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
+          <div className="flex gap-4">
+            <div className="flex size-14 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+              <Store className="size-7" strokeWidth={2.4} />
+            </div>
+            <div>
+              <p className="text-sm font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                Langkah Awal
+              </p>
+              <h1 className="mt-1 text-2xl font-bold tracking-tight text-foreground">
+                Siapkan toko pertama
+              </h1>
+              <p className="mt-2 text-base text-muted-foreground">
+                Kasir akan masuk pakai kode toko ini. Anda bisa menambah toko lain nanti.
+              </p>
+            </div>
           </div>
           <Button
             type="button"
-            variant="ghost"
+            variant="outline"
             size="sm"
             onClick={() => logout.mutate()}
             disabled={logout.isPending}
-            className="text-slate-600 hover:text-slate-900"
           >
-            <LogOut className="size-4" />
+            <LogOut className="size-5" />
             Keluar
           </Button>
         </div>
-        <form onSubmit={handleSubmit(onSubmit)} className="mt-6 space-y-4">
+
+        <form onSubmit={handleSubmit(onSubmit)} className="mt-8 space-y-6">
           <div>
             <Label htmlFor="store-name">Nama toko</Label>
             <Input
               id="store-name"
               autoFocus
-              className="mt-1"
-              placeholder="Toko Pusat"
+              placeholder="Contoh: Toko Berkah Jaya"
+              aria-invalid={!!errors.name}
               {...register("name")}
             />
             {errors.name && (
-              <p className="mt-1 text-xs text-red-600">{errors.name.message}</p>
+              <p className="mt-2 text-sm font-semibold text-destructive">{errors.name.message}</p>
             )}
           </div>
           <div>
             <Label htmlFor="store-code">Kode toko</Label>
             <Input
               id="store-code"
-              className="mt-1 font-mono uppercase"
-              placeholder="JKT01"
+              className="font-mono uppercase tracking-widest"
+              placeholder="Contoh: JKT01"
               maxLength={10}
+              aria-invalid={!!errors.code}
               {...register("code", {
                 onChange: (e) => {
                   const upper = e.target.value.toUpperCase();
@@ -125,8 +133,11 @@ function OnboardingRoute() {
                 },
               })}
             />
+            <p className="mt-2 text-sm text-muted-foreground">
+              3–10 huruf atau angka. Kasir pakai kode ini untuk masuk.
+            </p>
             {errors.code && (
-              <p className="mt-1 text-xs text-red-600">{errors.code.message}</p>
+              <p className="mt-2 text-sm font-semibold text-destructive">{errors.code.message}</p>
             )}
           </div>
           <div>
@@ -134,21 +145,21 @@ function OnboardingRoute() {
             <Textarea
               id="store-address"
               rows={3}
-              className="mt-1"
+              placeholder="Alamat toko untuk catatan internal"
               {...register("address")}
             />
             {errors.address && (
-              <p className="mt-1 text-xs text-red-600">
-                {errors.address.message}
-              </p>
+              <p className="mt-2 text-sm font-semibold text-destructive">{errors.address.message}</p>
             )}
           </div>
           <Button
             type="submit"
+            variant="accent"
+            size="lg"
             className="w-full"
             disabled={onboarding.isPending}
           >
-            {onboarding.isPending ? "Menyimpan…" : "Buat toko & lanjut"}
+            {onboarding.isPending ? "Menyimpan…" : "Buat Toko & Lanjut"}
           </Button>
         </form>
       </div>

@@ -1,8 +1,10 @@
-import { Pencil, Plus, Trash2 } from "lucide-react";
+import { Package, Pencil, Plus, Search, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Money } from "@/components/ui/money";
+import { PageTitle } from "@/components/ui/page-title";
 import {
   Table,
   TableBody,
@@ -15,8 +17,6 @@ import { DeleteProductDialog } from "@/features/products/components/delete-produ
 import { ProductFormDialog } from "@/features/products/components/product-form-dialog";
 import { useProducts } from "@/features/products/hooks";
 import type { Product } from "@/features/products/types";
-
-const idr = new Intl.NumberFormat("id-ID");
 
 export function ProductsPage() {
   const [search, setSearch] = useState("");
@@ -48,43 +48,44 @@ export function ProductsPage() {
   };
 
   return (
-    <div className="mx-auto w-full max-w-5xl px-4 py-8">
-      <div className="flex items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold text-slate-900">Produk</h1>
-          <p className="mt-1 text-sm text-slate-600">
-            Katalog produk dipakai bersama oleh semua toko Anda. Stok per toko
-            diatur terpisah.
-          </p>
-        </div>
-        <Button onClick={openCreate}>
-          <Plus className="mr-1 h-4 w-4" />
-          Produk baru
-        </Button>
-      </div>
+    <div>
+      <PageTitle
+        eyebrow="Katalog"
+        title="Produk"
+        subtitle="Katalog dipakai bersama semua toko. Stok per toko diatur terpisah."
+        actions={
+          <Button onClick={openCreate} variant="accent" size="default">
+            <Plus className="size-5" />
+            Produk Baru
+          </Button>
+        }
+      />
 
-      <div className="mt-6">
+      <div className="relative max-w-md">
+        <Search className="pointer-events-none absolute left-4 top-1/2 size-5 -translate-y-1/2 text-muted-foreground" />
         <Input
           type="search"
           placeholder="Cari nama atau barcode…"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="max-w-sm"
+          className="pl-12"
         />
       </div>
 
-      <div className="mt-4">
+      <div className="mt-6">
         {isLoading ? (
-          <p className="text-sm text-slate-500">Memuat…</p>
+          <p className="text-base text-muted-foreground">Memuat…</p>
         ) : isError ? (
-          <p className="text-sm text-red-600">
+          <p className="text-base font-semibold text-destructive">
             {error instanceof Error ? error.message : "Gagal memuat produk"}
           </p>
         ) : !products || products.length === 0 ? (
           debounced ? (
-            <p className="text-sm text-slate-500">
-              Tidak ada produk cocok untuk “{debounced}”.
-            </p>
+            <div className="rounded-lg border-2 border-dashed border-border bg-card/60 p-10 text-center">
+              <p className="text-base text-muted-foreground">
+                Tidak ada produk cocok untuk &ldquo;{debounced}&rdquo;.
+              </p>
+            </div>
           ) : (
             <EmptyState onCreate={openCreate} />
           )
@@ -94,21 +95,21 @@ export function ProductsPage() {
               <TableRow>
                 <TableHead className="w-48">Barcode</TableHead>
                 <TableHead>Nama</TableHead>
-                <TableHead className="w-32 text-right">Harga</TableHead>
-                <TableHead className="w-24 text-right">Aksi</TableHead>
+                <TableHead className="w-44 text-right">Harga Jual</TableHead>
+                <TableHead className="w-32 text-right">Aksi</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {products.map((product) => (
-                <TableRow key={product.id}>
-                  <TableCell className="font-mono text-slate-700">
+                <TableRow key={product.id} className="h-16">
+                  <TableCell className="font-mono text-muted-foreground">
                     {product.barcode ?? "—"}
                   </TableCell>
-                  <TableCell className="font-medium text-slate-900">
+                  <TableCell className="font-semibold text-foreground">
                     {product.name}
                   </TableCell>
-                  <TableCell className="text-right tabular-nums text-slate-900">
-                    Rp {idr.format(product.sell_price)}
+                  <TableCell className="text-right">
+                    <Money value={product.sell_price} size="base" />
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="inline-flex gap-1">
@@ -118,15 +119,16 @@ export function ProductsPage() {
                         aria-label={`Ubah ${product.name}`}
                         onClick={() => openEdit(product)}
                       >
-                        <Pencil className="h-4 w-4" />
+                        <Pencil className="size-5" />
                       </Button>
                       <Button
                         size="icon-sm"
                         variant="ghost"
                         aria-label={`Hapus ${product.name}`}
                         onClick={() => openDelete(product)}
+                        className="text-destructive hover:bg-destructive/10"
                       >
-                        <Trash2 className="h-4 w-4 text-red-600" />
+                        <Trash2 className="size-5" />
                       </Button>
                     </div>
                   </TableCell>
@@ -153,14 +155,19 @@ export function ProductsPage() {
 
 function EmptyState({ onCreate }: { onCreate: () => void }) {
   return (
-    <div className="rounded-xl border border-dashed border-slate-300 bg-white p-10 text-center">
-      <h2 className="text-base font-medium text-slate-900">Belum ada produk</h2>
-      <p className="mt-1 text-sm text-slate-600">
-        Tambahkan produk pertama Anda untuk mulai mengisi stok dan menjual.
-      </p>
-      <Button className="mt-4" onClick={onCreate}>
-        <Plus className="mr-1 h-4 w-4" />
-        Produk baru
+    <div className="flex flex-col items-center gap-4 rounded-lg border-2 border-dashed border-border bg-card/60 p-12 text-center">
+      <div className="flex size-16 items-center justify-center rounded-full bg-accent/20">
+        <Package className="size-8" strokeWidth={2} />
+      </div>
+      <div>
+        <h2 className="text-xl font-bold text-foreground">Belum ada produk</h2>
+        <p className="mt-2 max-w-md text-base text-muted-foreground">
+          Tambah produk pertama untuk mulai mengisi stok dan berjualan.
+        </p>
+      </div>
+      <Button variant="accent" size="lg" onClick={onCreate}>
+        <Plus className="size-5" />
+        Tambah Produk
       </Button>
     </div>
   );

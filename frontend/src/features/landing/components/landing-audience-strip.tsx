@@ -9,15 +9,17 @@ export function LandingAudienceStrip() {
   return (
     <section
       aria-label="Cocok untuk"
-      className="border-y border-amber-100 bg-amber-50/60 py-10"
+      className="border-y border-border bg-accent/10 py-12"
     >
-      <div className="mx-auto max-w-6xl px-4 text-center sm:px-6">
-        <p className="text-lg text-neutral-700">Cocok untuk:</p>
-        <ul className="mt-4 flex flex-wrap justify-center gap-2">
+      <div className="mx-auto max-w-6xl px-5 text-center sm:px-8">
+        <p className="text-base font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+          Cocok untuk
+        </p>
+        <ul className="mt-5 flex flex-wrap justify-center gap-3">
           {audiences.map((label) => (
             <li
               key={label}
-              className="rounded-full border border-amber-200 bg-white px-4 py-2 text-base text-neutral-800 shadow-sm"
+              className="rounded-full border border-border bg-card px-5 py-2.5 text-base font-semibold text-foreground shadow-sm"
             >
               {label}
             </li>

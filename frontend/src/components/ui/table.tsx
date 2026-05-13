@@ -4,37 +4,31 @@ import { cn } from "@/lib/utils";
 
 function Table({ className, ...props }: React.ComponentProps<"table">) {
   return (
-    <div className="w-full overflow-x-auto rounded-lg ring-1 ring-slate-200">
+    <div className="w-full overflow-x-auto rounded-lg ring-1 ring-border bg-card">
       <table
         data-slot="table"
-        className={cn("w-full caption-bottom text-sm", className)}
+        className={cn("w-full caption-bottom text-base", className)}
         {...props}
       />
     </div>
   );
 }
 
-function TableHeader({
-  className,
-  ...props
-}: React.ComponentProps<"thead">) {
+function TableHeader({ className, ...props }: React.ComponentProps<"thead">) {
   return (
     <thead
       data-slot="table-header"
-      className={cn("bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500", className)}
+      className={cn("bg-muted/60 text-left text-sm font-semibold uppercase tracking-wide text-muted-foreground", className)}
       {...props}
     />
   );
 }
 
-function TableBody({
-  className,
-  ...props
-}: React.ComponentProps<"tbody">) {
+function TableBody({ className, ...props }: React.ComponentProps<"tbody">) {
   return (
     <tbody
       data-slot="table-body"
-      className={cn("divide-y divide-slate-200 bg-white", className)}
+      className={cn("divide-y divide-border bg-card", className)}
       {...props}
     />
   );
@@ -44,7 +38,7 @@ function TableRow({ className, ...props }: React.ComponentProps<"tr">) {
   return (
     <tr
       data-slot="table-row"
-      className={cn("hover:bg-slate-50", className)}
+      className={cn("transition-colors hover:bg-muted/40", className)}
       {...props}
     />
   );
@@ -54,7 +48,7 @@ function TableHead({ className, ...props }: React.ComponentProps<"th">) {
   return (
     <th
       data-slot="table-head"
-      className={cn("px-4 py-2 font-medium", className)}
+      className={cn("px-5 py-4 font-semibold", className)}
       {...props}
     />
   );
@@ -64,17 +58,10 @@ function TableCell({ className, ...props }: React.ComponentProps<"td">) {
   return (
     <td
       data-slot="table-cell"
-      className={cn("px-4 py-3 text-slate-700", className)}
+      className={cn("px-5 py-4 text-foreground", className)}
       {...props}
     />
   );
 }
 
-export {
-  Table,
-  TableHeader,
-  TableBody,
-  TableRow,
-  TableHead,
-  TableCell,
-};
+export { Table, TableHeader, TableBody, TableRow, TableHead, TableCell };

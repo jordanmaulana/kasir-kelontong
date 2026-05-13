@@ -37,7 +37,7 @@ export function DeleteStoreDialog({ open, onOpenChange, store }: Props) {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-sm">
         <DialogHeader>
-          <DialogTitle>Hapus toko?</DialogTitle>
+          <DialogTitle>Hapus Toko?</DialogTitle>
           <DialogDescription>
             {store ? (
               <>

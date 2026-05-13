@@ -10,10 +10,7 @@ function Label({
   return (
     <RadixLabel.Root
       data-slot="label"
-      className={cn(
-        "block text-sm font-medium text-slate-700",
-        className
-      )}
+      className={cn("mb-2 block text-base font-semibold text-foreground", className)}
       {...props}
     />
   );

@@ -26,10 +26,7 @@ const schema = z.object({
   barcode: z
     .string()
     .max(64)
-    .regex(
-      /^$|^[A-Za-z0-9-]{1,64}$/,
-      "Barcode 1–64 karakter, huruf/angka/tanda hubung"
-    )
+    .regex(/^$|^[A-Za-z0-9-]{1,64}$/, "Barcode 1–64 karakter, huruf/angka/tanda hubung")
     .optional(),
   name: z.string().min(1, "Nama wajib diisi").max(200),
   sell_price: z
@@ -117,37 +114,38 @@ export function ProductFormDialog({ open, onOpenChange, product }: Props) {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{isEdit ? "Ubah produk" : "Produk baru"}</DialogTitle>
+          <DialogTitle>{isEdit ? "Ubah Produk" : "Produk Baru"}</DialogTitle>
           <DialogDescription>
             Scan barcode atau isi manual. Barcode opsional untuk barang curah.
           </DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
           <div>
-            <Label htmlFor="product-barcode">Barcode</Label>
+            <Label htmlFor="product-barcode">Barcode (opsional)</Label>
             <Input
               id="product-barcode"
               autoFocus
-              className="mt-1 font-mono"
-              placeholder="Scan atau ketik (opsional)"
+              className="font-mono"
+              placeholder="Scan atau ketik manual"
               maxLength={64}
               autoComplete="off"
+              aria-invalid={!!errors.barcode}
               {...register("barcode")}
             />
             {errors.barcode && (
-              <p className="mt-1 text-xs text-red-600">{errors.barcode.message}</p>
+              <p className="mt-2 text-sm font-semibold text-destructive">{errors.barcode.message}</p>
             )}
           </div>
           <div>
-            <Label htmlFor="product-name">Nama</Label>
+            <Label htmlFor="product-name">Nama produk</Label>
             <Input
               id="product-name"
-              className="mt-1"
-              placeholder="cth. Indomie Goreng"
+              placeholder="Contoh: Indomie Goreng"
+              aria-invalid={!!errors.name}
               {...register("name")}
             />
             {errors.name && (
-              <p className="mt-1 text-xs text-red-600">{errors.name.message}</p>
+              <p className="mt-2 text-sm font-semibold text-destructive">{errors.name.message}</p>
             )}
           </div>
           <div>
@@ -158,11 +156,13 @@ export function ProductFormDialog({ open, onOpenChange, product }: Props) {
               inputMode="numeric"
               min={0}
               step={1}
-              className="mt-1"
+              placeholder="0"
+              className="text-right font-mono text-lg"
+              aria-invalid={!!errors.sell_price}
               {...register("sell_price", { valueAsNumber: true })}
             />
             {errors.sell_price && (
-              <p className="mt-1 text-xs text-red-600">
+              <p className="mt-2 text-sm font-semibold text-destructive">
                 {errors.sell_price.message}
               </p>
             )}
@@ -176,12 +176,12 @@ export function ProductFormDialog({ open, onOpenChange, product }: Props) {
             >
               Batal
             </Button>
-            <Button type="submit" disabled={mutation.isPending}>
+            <Button type="submit" variant="accent" disabled={mutation.isPending}>
               {mutation.isPending
                 ? "Menyimpan…"
                 : isEdit
-                  ? "Simpan perubahan"
-                  : "Buat produk"}
+                  ? "Simpan Perubahan"
+                  : "Buat Produk"}
             </Button>
           </DialogFooter>
         </form>

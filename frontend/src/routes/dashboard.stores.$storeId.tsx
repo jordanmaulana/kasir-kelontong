@@ -1,12 +1,7 @@
 import { Link, createFileRoute } from "@tanstack/react-router";
-import { ChevronLeft } from "lucide-react";
+import { ChevronLeft, MapPin } from "lucide-react";
 
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CashiersTab } from "@/features/cashiers/components/cashiers-tab";
 import { ReportsTab } from "@/features/reports/components/reports-tab";
 import { ReceivingTab } from "@/features/stock/components/receiving-tab";
@@ -23,48 +18,47 @@ function StoreDetailPage() {
   const store = stores?.find((s) => s.id === storeId);
 
   return (
-    <div className="mx-auto w-full max-w-5xl px-4 py-8">
+    <div>
       <Link
         to="/dashboard"
-        className="inline-flex items-center text-sm text-slate-600 hover:text-slate-900"
+        className="inline-flex items-center gap-2 text-base font-semibold text-muted-foreground hover:text-foreground"
       >
-        <ChevronLeft className="mr-1 h-4 w-4" />
+        <ChevronLeft className="size-5" />
         Kembali ke daftar toko
       </Link>
 
       {isLoading ? (
-        <p className="mt-6 text-sm text-slate-500">Memuat…</p>
+        <p className="mt-8 text-base text-muted-foreground">Memuat…</p>
       ) : isError ? (
-        <p className="mt-6 text-sm text-red-600">
+        <p className="mt-8 text-base font-semibold text-destructive">
           {error instanceof Error ? error.message : "Gagal memuat toko"}
         </p>
       ) : !store ? (
-        <div className="mt-6 rounded-xl border border-dashed border-slate-300 bg-white p-10 text-center">
-          <h2 className="text-base font-medium text-slate-900">
-            Toko tidak ditemukan
-          </h2>
-          <p className="mt-1 text-sm text-slate-600">
-            Toko mungkin sudah dihapus atau Anda tidak memiliki akses.
+        <div className="mt-8 rounded-lg border-2 border-dashed border-border bg-card/60 p-12 text-center">
+          <h2 className="text-xl font-bold text-foreground">Toko tidak ditemukan</h2>
+          <p className="mt-2 text-base text-muted-foreground">
+            Toko mungkin sudah dihapus atau Anda tidak punya akses.
           </p>
         </div>
       ) : (
         <>
-          <header className="mt-4">
-            <div className="flex items-baseline gap-3">
-              <h1 className="text-2xl font-semibold text-slate-900">
-                {store.name}
-              </h1>
-              <span className="font-mono text-sm text-slate-500">
+          <header className="mt-6 flex flex-col gap-4 rounded-lg border border-border bg-card p-6 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex flex-col gap-2">
+              <span className="inline-flex w-fit items-center gap-2 rounded-md bg-accent px-3 py-1 font-mono text-base font-bold tracking-wider text-accent-foreground">
                 {store.code}
               </span>
+              <h1 className="text-2xl font-bold tracking-tight text-foreground">{store.name}</h1>
+              {store.address && (
+                <p className="flex items-start gap-2 text-base text-muted-foreground">
+                  <MapPin className="mt-0.5 size-4 shrink-0" />
+                  <span>{store.address}</span>
+                </p>
+              )}
             </div>
-            {store.address && (
-              <p className="mt-1 text-sm text-slate-600">{store.address}</p>
-            )}
           </header>
 
-          <Tabs defaultValue="kasir" className="mt-6">
-            <TabsList>
+          <Tabs defaultValue="kasir" className="mt-8">
+            <TabsList className="flex flex-wrap">
               <TabsTrigger value="kasir">Kasir</TabsTrigger>
               <TabsTrigger value="stok">Stok</TabsTrigger>
               <TabsTrigger value="penerimaan">Kulakan</TabsTrigger>
@@ -88,4 +82,3 @@ function StoreDetailPage() {
     </div>
   );
 }
-
