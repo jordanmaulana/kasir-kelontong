@@ -1,6 +1,6 @@
-from django.contrib import admin
-
 from profile.models import Profile
+
+from django.contrib import admin
 
 
 @admin.register(Profile)

@@ -5,9 +5,7 @@ from core.models import BaseModel
 
 
 class Product(BaseModel):
-    tenant = models.ForeignKey(
-        "tenant.Tenant", on_delete=models.CASCADE, related_name="products"
-    )
+    tenant = models.ForeignKey("tenant.Tenant", on_delete=models.CASCADE, related_name="products")
     barcode = models.CharField(max_length=64, null=True, blank=True)
     name = models.CharField(max_length=200)
     sell_price = models.PositiveIntegerField(default=0)

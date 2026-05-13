@@ -8,6 +8,7 @@ import {
   TabsTrigger,
 } from "@/components/ui/tabs";
 import { CashiersTab } from "@/features/cashiers/components/cashiers-tab";
+import { ReportsTab } from "@/features/reports/components/reports-tab";
 import { ReceivingTab } from "@/features/stock/components/receiving-tab";
 import { StockTab } from "@/features/stock/components/stock-tab";
 import { useStores } from "@/features/stores/hooks";
@@ -79,7 +80,7 @@ function StoreDetailPage() {
               <ReceivingTab storeId={store.id} />
             </TabsContent>
             <TabsContent value="laporan">
-              <ComingSoon label="Laporan" />
+              <ReportsTab storeId={store.id} />
             </TabsContent>
           </Tabs>
         </>
@@ -88,13 +89,3 @@ function StoreDetailPage() {
   );
 }
 
-function ComingSoon({ label }: { label: string }) {
-  return (
-    <div className="rounded-xl border border-dashed border-slate-300 bg-white p-10 text-center">
-      <h3 className="text-base font-medium text-slate-900">{label}</h3>
-      <p className="mt-1 text-sm text-slate-600">
-        Hadir di rilis berikutnya (F4–F8).
-      </p>
-    </div>
-  );
-}

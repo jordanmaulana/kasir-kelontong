@@ -5,9 +5,7 @@ from core.models import BaseModel
 
 
 class Cashier(BaseModel):
-    store = models.ForeignKey(
-        "store.Store", on_delete=models.CASCADE, related_name="cashiers"
-    )
+    store = models.ForeignKey("store.Store", on_delete=models.CASCADE, related_name="cashiers")
     display_name = models.CharField(max_length=80)
     pin_hash = models.CharField(max_length=128)
     active = models.BooleanField(default=True)
@@ -46,6 +44,7 @@ class CashierSession(BaseModel):
     def issue(cls, cashier):
         import secrets
         from datetime import timedelta
+
         from django.utils import timezone
 
         return cls.objects.create(

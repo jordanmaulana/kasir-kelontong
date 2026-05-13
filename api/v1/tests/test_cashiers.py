@@ -36,9 +36,7 @@ class CashiersListCreateTests(TestCase):
     def setUp(self):
         self.user, self.tenant, self.token = _make_user("a@b.com")
         self.client = _client_for(self.token)
-        self.store = Store.objects.create(
-            tenant=self.tenant, name="Toko Pusat", code="JKT01"
-        )
+        self.store = Store.objects.create(tenant=self.tenant, name="Toko Pusat", code="JKT01")
         self.url = reverse("api-v1-cashiers", args=[self.store.id])
 
     def test_list_empty(self):
@@ -48,9 +46,7 @@ class CashiersListCreateTests(TestCase):
 
     def test_list_scoped_to_store(self):
         _make_cashier(self.store, name="Andi")
-        other = Store.objects.create(
-            tenant=self.tenant, name="Cabang", code="JKT02"
-        )
+        other = Store.objects.create(tenant=self.tenant, name="Cabang", code="JKT02")
         _make_cashier(other, name="Budi")
         res = self.client.get(self.url)
         self.assertEqual(res.status_code, status.HTTP_200_OK)
@@ -78,63 +74,45 @@ class CashiersListCreateTests(TestCase):
         self.assertTrue(cashier.check_pin("123456"))
 
     def test_create_pin_too_short_400(self):
-        res = self.client.post(
-            self.url, {"display_name": "Andi", "pin": "12345"}, format="json"
-        )
+        res = self.client.post(self.url, {"display_name": "Andi", "pin": "12345"}, format="json")
         self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn("pin", res.data)
 
     def test_create_pin_too_long_400(self):
-        res = self.client.post(
-            self.url, {"display_name": "Andi", "pin": "1234567"}, format="json"
-        )
+        res = self.client.post(self.url, {"display_name": "Andi", "pin": "1234567"}, format="json")
         self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn("pin", res.data)
 
     def test_create_pin_non_digits_400(self):
-        res = self.client.post(
-            self.url, {"display_name": "Andi", "pin": "12345a"}, format="json"
-        )
+        res = self.client.post(self.url, {"display_name": "Andi", "pin": "12345a"}, format="json")
         self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn("pin", res.data)
 
     def test_create_missing_pin_400(self):
-        res = self.client.post(
-            self.url, {"display_name": "Andi"}, format="json"
-        )
+        res = self.client.post(self.url, {"display_name": "Andi"}, format="json")
         self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn("pin", res.data)
 
     def test_create_missing_name_400(self):
-        res = self.client.post(
-            self.url, {"pin": "123456"}, format="json"
-        )
+        res = self.client.post(self.url, {"pin": "123456"}, format="json")
         self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn("display_name", res.data)
 
     def test_create_duplicate_active_pin_400(self):
         _make_cashier(self.store, name="Andi", pin="123456")
-        res = self.client.post(
-            self.url, {"display_name": "Budi", "pin": "123456"}, format="json"
-        )
+        res = self.client.post(self.url, {"display_name": "Budi", "pin": "123456"}, format="json")
         self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn("pin", res.data)
 
     def test_same_pin_allowed_across_stores(self):
-        other_store = Store.objects.create(
-            tenant=self.tenant, name="Cabang", code="JKT02"
-        )
+        other_store = Store.objects.create(tenant=self.tenant, name="Cabang", code="JKT02")
         _make_cashier(other_store, name="Andi", pin="123456")
-        res = self.client.post(
-            self.url, {"display_name": "Budi", "pin": "123456"}, format="json"
-        )
+        res = self.client.post(self.url, {"display_name": "Budi", "pin": "123456"}, format="json")
         self.assertEqual(res.status_code, status.HTTP_201_CREATED)
 
     def test_pin_reuse_after_deactivation(self):
         _make_cashier(self.store, name="Andi", pin="123456", active=False)
-        res = self.client.post(
-            self.url, {"display_name": "Budi", "pin": "123456"}, format="json"
-        )
+        res = self.client.post(self.url, {"display_name": "Budi", "pin": "123456"}, format="json")
         self.assertEqual(res.status_code, status.HTTP_201_CREATED)
 
     def test_tenant_isolation_list_404(self):
@@ -158,13 +136,9 @@ class CashierDetailTests(TestCase):
     def setUp(self):
         self.user, self.tenant, self.token = _make_user("a@b.com")
         self.client = _client_for(self.token)
-        self.store = Store.objects.create(
-            tenant=self.tenant, name="Toko Pusat", code="JKT01"
-        )
+        self.store = Store.objects.create(tenant=self.tenant, name="Toko Pusat", code="JKT01")
         self.cashier = _make_cashier(self.store, name="Andi", pin="123456")
-        self.url = reverse(
-            "api-v1-cashier-detail", args=[self.store.id, self.cashier.id]
-        )
+        self.url = reverse("api-v1-cashier-detail", args=[self.store.id, self.cashier.id])
 
     def test_get_detail(self):
         res = self.client.get(self.url)
@@ -173,9 +147,7 @@ class CashierDetailTests(TestCase):
         self.assertNotIn("pin_hash", res.data)
 
     def test_patch_rename(self):
-        res = self.client.patch(
-            self.url, {"display_name": "Andika"}, format="json"
-        )
+        res = self.client.patch(self.url, {"display_name": "Andika"}, format="json")
         self.assertEqual(res.status_code, status.HTTP_200_OK)
         self.cashier.refresh_from_db()
         self.assertEqual(self.cashier.display_name, "Andika")
@@ -225,9 +197,7 @@ class CashierDetailTests(TestCase):
 
     def test_tenant_isolation_patch_404(self):
         _, _, other_token = _make_user("z@b.com")
-        res = _client_for(other_token).patch(
-            self.url, {"display_name": "Hacked"}, format="json"
-        )
+        res = _client_for(other_token).patch(self.url, {"display_name": "Hacked"}, format="json")
         self.assertEqual(res.status_code, status.HTTP_404_NOT_FOUND)
         self.cashier.refresh_from_db()
         self.assertEqual(self.cashier.display_name, "Andi")
@@ -240,12 +210,8 @@ class CashierDetailTests(TestCase):
         self.assertTrue(self.cashier.active)
 
     def test_store_mismatch_404(self):
-        other_store = Store.objects.create(
-            tenant=self.tenant, name="Cabang", code="JKT02"
-        )
-        bad_url = reverse(
-            "api-v1-cashier-detail", args=[other_store.id, self.cashier.id]
-        )
+        other_store = Store.objects.create(tenant=self.tenant, name="Cabang", code="JKT02")
+        bad_url = reverse("api-v1-cashier-detail", args=[other_store.id, self.cashier.id])
         res = self.client.get(bad_url)
         self.assertEqual(res.status_code, status.HTTP_404_NOT_FOUND)
 

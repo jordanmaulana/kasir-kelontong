@@ -39,9 +39,7 @@ def _cashier_client(token):
 class CashierStockViewTests(TestCase):
     def setUp(self):
         self.user, self.tenant, _ = _make_user("a@b.com")
-        self.store = Store.objects.create(
-            tenant=self.tenant, name="Toko A", code="JKT01"
-        )
+        self.store = Store.objects.create(tenant=self.tenant, name="Toko A", code="JKT01")
         self.p1 = Product.objects.create(
             tenant=self.tenant, name="Indomie", barcode="111", sell_price=3500
         )
@@ -79,9 +77,7 @@ class CashierStockViewTests(TestCase):
 class SaleCreateTests(TestCase):
     def setUp(self):
         self.user, self.tenant, _ = _make_user("a@b.com")
-        self.store = Store.objects.create(
-            tenant=self.tenant, name="Toko A", code="JKT01"
-        )
+        self.store = Store.objects.create(tenant=self.tenant, name="Toko A", code="JKT01")
         self.p1 = Product.objects.create(
             tenant=self.tenant, name="Indomie", barcode="111", sell_price=3500
         )
@@ -94,12 +90,18 @@ class SaleCreateTests(TestCase):
         self.url = reverse("api-v1-cashier-sales-create")
         # seed enough stock
         record_movement(
-            store=self.store, product=self.p1, delta=10,
-            reason=StockReason.RECEIVING, actor=self.user,
+            store=self.store,
+            product=self.p1,
+            delta=10,
+            reason=StockReason.RECEIVING,
+            actor=self.user,
         )
         record_movement(
-            store=self.store, product=self.p2, delta=5,
-            reason=StockReason.RECEIVING, actor=self.user,
+            store=self.store,
+            product=self.p2,
+            delta=5,
+            reason=StockReason.RECEIVING,
+            actor=self.user,
         )
 
     def test_happy_path_creates_sale_lines_and_movements(self):
@@ -124,12 +126,8 @@ class SaleCreateTests(TestCase):
         self.assertEqual(Sale.objects.count(), 1)
         self.assertEqual(SaleLine.objects.filter(sale_id=sale_id).count(), 2)
 
-        self.assertEqual(
-            StoreStock.objects.get(store=self.store, product=self.p1).qty, 8
-        )
-        self.assertEqual(
-            StoreStock.objects.get(store=self.store, product=self.p2).qty, 4
-        )
+        self.assertEqual(StoreStock.objects.get(store=self.store, product=self.p1).qty, 8)
+        self.assertEqual(StoreStock.objects.get(store=self.store, product=self.p2).qty, 4)
         sale_movements = StockMovement.objects.filter(
             store=self.store, reason=StockReason.SALE, ref_type="sale", ref_id=sale_id
         )
@@ -151,9 +149,7 @@ class SaleCreateTests(TestCase):
         self.assertEqual(Sale.objects.count(), 0)
         self.assertEqual(SaleLine.objects.count(), 0)
         # stock unchanged
-        self.assertEqual(
-            StoreStock.objects.get(store=self.store, product=self.p1).qty, 10
-        )
+        self.assertEqual(StoreStock.objects.get(store=self.store, product=self.p1).qty, 10)
 
     def test_insufficient_tender_400(self):
         res = self.client_.post(
@@ -169,9 +165,7 @@ class SaleCreateTests(TestCase):
 
     def test_cross_tenant_product_400(self):
         _, other_tenant, _ = _make_user("z@b.com")
-        other_product = Product.objects.create(
-            tenant=other_tenant, name="X", sell_price=100
-        )
+        other_product = Product.objects.create(tenant=other_tenant, name="X", sell_price=100)
         res = self.client_.post(
             self.url,
             {
@@ -198,9 +192,7 @@ class SaleCreateTests(TestCase):
         self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
 
     def test_empty_lines_400(self):
-        res = self.client_.post(
-            self.url, {"lines": [], "tendered": 0}, format="json"
-        )
+        res = self.client_.post(self.url, {"lines": [], "tendered": 0}, format="json")
         self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
 
     def test_zero_qty_400(self):
@@ -243,9 +235,7 @@ class SaleCreateTests(TestCase):
 class SalesTodayListTests(TestCase):
     def setUp(self):
         self.user, self.tenant, _ = _make_user("a@b.com")
-        self.store = Store.objects.create(
-            tenant=self.tenant, name="Toko A", code="JKT01"
-        )
+        self.store = Store.objects.create(tenant=self.tenant, name="Toko A", code="JKT01")
         self.p1 = Product.objects.create(
             tenant=self.tenant, name="Indomie", barcode="111", sell_price=3500
         )
@@ -254,8 +244,11 @@ class SalesTodayListTests(TestCase):
         self.session_a = CashierSession.issue(self.cashier_a)
         self.session_b = CashierSession.issue(self.cashier_b)
         record_movement(
-            store=self.store, product=self.p1, delta=20,
-            reason=StockReason.RECEIVING, actor=self.user,
+            store=self.store,
+            product=self.p1,
+            delta=20,
+            reason=StockReason.RECEIVING,
+            actor=self.user,
         )
         self.url = reverse("api-v1-cashier-sales-today")
 

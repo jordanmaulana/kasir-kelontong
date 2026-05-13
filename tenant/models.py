@@ -6,9 +6,7 @@ from core.models import BaseModel
 
 class Tenant(BaseModel):
     name = models.CharField(max_length=120)
-    owner = models.OneToOneField(
-        User, on_delete=models.CASCADE, related_name="tenant"
-    )
+    owner = models.OneToOneField(User, on_delete=models.CASCADE, related_name="tenant")
 
     class Meta:
         ordering = ["created_on"]

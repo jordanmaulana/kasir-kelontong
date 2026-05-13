@@ -25,14 +25,11 @@ def create_sale(*, store, cashier, lines, tendered):
 
     products = {
         p.id: p
-        for p in Product.objects.select_for_update()
-        .filter(id__in=product_ids, tenant=store.tenant)
+        for p in Product.objects.select_for_update().filter(id__in=product_ids, tenant=store.tenant)
     }
     missing = set(product_ids) - set(products.keys())
     if missing:
-        raise SaleValidationError(
-            f"Produk tidak ditemukan: {', '.join(sorted(missing))}"
-        )
+        raise SaleValidationError(f"Produk tidak ditemukan: {', '.join(sorted(missing))}")
 
     subtotal = 0
     resolved_lines = []
@@ -52,9 +49,7 @@ def create_sale(*, store, cashier, lines, tendered):
         )
 
     if tendered < subtotal:
-        raise InsufficientTenderError(
-            f"Uang tunai kurang: butuh {subtotal}, diterima {tendered}"
-        )
+        raise InsufficientTenderError(f"Uang tunai kurang: butuh {subtotal}, diterima {tendered}")
 
     change = tendered - subtotal
 

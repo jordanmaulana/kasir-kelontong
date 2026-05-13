@@ -23,10 +23,7 @@ def build_stock_rows(store, q=""):
     q = (q or "").strip()
     if q:
         products = products.filter(Q(name__icontains=q) | Q(barcode__icontains=q))
-    stocks = {
-        s.product_id: s
-        for s in StoreStock.objects.filter(store=store, product__in=products)
-    }
+    stocks = {s.product_id: s for s in StoreStock.objects.filter(store=store, product__in=products)}
     rows = []
     for p in products:
         s = stocks.get(p.id)
@@ -95,9 +92,7 @@ class StoreReceivingView(APIView):
         store, err = require_store(request.user, store_id)
         if err:
             return err
-        serializer = ReceivingSerializer(
-            data=request.data, context={"store": store}
-        )
+        serializer = ReceivingSerializer(data=request.data, context={"store": store})
         serializer.is_valid(raise_exception=True)
         items = serializer.validated_data["items"]
         products = {
@@ -131,9 +126,7 @@ class StoreAdjustmentView(APIView):
         store, err = require_store(request.user, store_id)
         if err:
             return err
-        serializer = AdjustmentSerializer(
-            data=request.data, context={"store": store}
-        )
+        serializer = AdjustmentSerializer(data=request.data, context={"store": store})
         serializer.is_valid(raise_exception=True)
         data = serializer.validated_data
         product = Product.objects.get(id=data["product_id"], tenant=store.tenant)
@@ -163,9 +156,5 @@ class StoreAdjustmentView(APIView):
                     note=data["note"],
                 )
             except OutOfStockError as exc:
-                return Response(
-                    {"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST
-                )
-        return Response(
-            StockMovementSerializer(movement).data, status=status.HTTP_201_CREATED
-        )
+                return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        return Response(StockMovementSerializer(movement).data, status=status.HTTP_201_CREATED)

@@ -34,7 +34,9 @@ urlpatterns = [
         name="api-v1-cashier-me",
     ),
     path("stores/", stores_api.StoresView.as_view(), name="api-v1-stores"),
-    path("stores/<str:store_id>/", stores_api.StoreDetailView.as_view(), name="api-v1-store-detail"),
+    path(
+        "stores/<str:store_id>/", stores_api.StoreDetailView.as_view(), name="api-v1-store-detail"
+    ),
     path(
         "stores/<str:store_id>/cashiers/",
         cashiers_api.CashiersView.as_view(),
@@ -70,6 +72,11 @@ urlpatterns = [
         "stores/<str:store_id>/adjustments/",
         stock_api.StoreAdjustmentView.as_view(),
         name="api-v1-store-adjustment",
+    ),
+    path(
+        "stores/<str:store_id>/sales/report/",
+        sales_api.store_sales_report,
+        name="api-v1-store-sales-report",
     ),
     path(
         "cashier/stock/",

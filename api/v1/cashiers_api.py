@@ -31,14 +31,10 @@ class CashiersView(APIView):
         store, err = require_store(request.user, store_id)
         if err:
             return err
-        serializer = CashierSerializer(
-            data=request.data, context={"store": store}
-        )
+        serializer = CashierSerializer(data=request.data, context={"store": store})
         serializer.is_valid(raise_exception=True)
         cashier = serializer.save(actor=request.user)
-        return Response(
-            CashierSerializer(cashier).data, status=status.HTTP_201_CREATED
-        )
+        return Response(CashierSerializer(cashier).data, status=status.HTTP_201_CREATED)
 
 
 class CashierDetailView(APIView):

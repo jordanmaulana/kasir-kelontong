@@ -30,9 +30,7 @@ class ProductsView(APIView):
         serializer = ProductSerializer(data=request.data, context={"tenant": tenant})
         serializer.is_valid(raise_exception=True)
         product = serializer.save(tenant=tenant, actor=request.user)
-        return Response(
-            ProductSerializer(product).data, status=status.HTTP_201_CREATED
-        )
+        return Response(ProductSerializer(product).data, status=status.HTTP_201_CREATED)
 
 
 class ProductDetailView(APIView):

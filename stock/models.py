@@ -32,12 +32,8 @@ class StockMovement(BaseModel):
 
 
 class StoreStock(BaseModel):
-    store = models.ForeignKey(
-        "store.Store", on_delete=models.CASCADE, related_name="stocks"
-    )
-    product = models.ForeignKey(
-        "product.Product", on_delete=models.CASCADE, related_name="stocks"
-    )
+    store = models.ForeignKey("store.Store", on_delete=models.CASCADE, related_name="stocks")
+    product = models.ForeignKey("product.Product", on_delete=models.CASCADE, related_name="stocks")
     qty = models.IntegerField(default=0)
     last_movement_at = models.DateTimeField(null=True, blank=True)
 

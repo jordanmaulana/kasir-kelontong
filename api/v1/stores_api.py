@@ -26,9 +26,7 @@ class StoresView(APIView):
         serializer = StoreSerializer(data=request.data, context={"tenant": tenant})
         serializer.is_valid(raise_exception=True)
         store = serializer.save(tenant=tenant, actor=request.user)
-        return Response(
-            StoreSerializer(store).data, status=status.HTTP_201_CREATED
-        )
+        return Response(StoreSerializer(store).data, status=status.HTTP_201_CREATED)
 
 
 class StoreDetailView(APIView):

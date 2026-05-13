@@ -1,3 +1,5 @@
+from profile.models import Profile
+
 from django.contrib.auth import get_user_model
 from django.db import transaction
 from rest_framework import status
@@ -13,7 +15,6 @@ from api.v1.serializers import (
     StoreSerializer,
     UserSerializer,
 )
-from profile.models import Profile
 from tenant.models import Tenant
 
 User = get_user_model()

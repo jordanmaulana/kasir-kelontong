@@ -31,9 +31,7 @@ class StockListTests(TestCase):
     def setUp(self):
         self.user, self.tenant, self.token = _make_user("a@b.com")
         self.client = _client_for(self.token)
-        self.store = Store.objects.create(
-            tenant=self.tenant, name="Toko A", code="JKT01"
-        )
+        self.store = Store.objects.create(tenant=self.tenant, name="Toko A", code="JKT01")
         self.p1 = Product.objects.create(
             tenant=self.tenant, name="Indomie", barcode="111", sell_price=3500
         )
@@ -82,9 +80,7 @@ class ReceivingTests(TestCase):
     def setUp(self):
         self.user, self.tenant, self.token = _make_user("a@b.com")
         self.client = _client_for(self.token)
-        self.store = Store.objects.create(
-            tenant=self.tenant, name="Toko A", code="JKT01"
-        )
+        self.store = Store.objects.create(tenant=self.tenant, name="Toko A", code="JKT01")
         self.p1 = Product.objects.create(
             tenant=self.tenant, name="Indomie", barcode="111", sell_price=3500
         )
@@ -160,9 +156,7 @@ class ReceivingTests(TestCase):
 
     def test_receiving_cross_tenant_product_400(self):
         _, other_tenant, _ = _make_user("z@b.com")
-        other_product = Product.objects.create(
-            tenant=other_tenant, name="X", sell_price=100
-        )
+        other_product = Product.objects.create(tenant=other_tenant, name="X", sell_price=100)
         res = self.client.post(
             self.url,
             {"items": [{"product_id": other_product.id, "qty": 5}]},
@@ -184,9 +178,7 @@ class AdjustmentTests(TestCase):
     def setUp(self):
         self.user, self.tenant, self.token = _make_user("a@b.com")
         self.client = _client_for(self.token)
-        self.store = Store.objects.create(
-            tenant=self.tenant, name="Toko A", code="JKT01"
-        )
+        self.store = Store.objects.create(tenant=self.tenant, name="Toko A", code="JKT01")
         self.p1 = Product.objects.create(
             tenant=self.tenant, name="Indomie", barcode="111", sell_price=3500
         )
@@ -292,9 +284,7 @@ class AdjustmentTests(TestCase):
 
     def test_adjust_cross_tenant_product_400(self):
         _, other_tenant, _ = _make_user("z@b.com")
-        other_product = Product.objects.create(
-            tenant=other_tenant, name="X", sell_price=100
-        )
+        other_product = Product.objects.create(tenant=other_tenant, name="X", sell_price=100)
         res = self.client.post(
             self.url,
             {"product_id": other_product.id, "delta": 1, "note": "x"},
@@ -307,9 +297,7 @@ class MovementsListTests(TestCase):
     def setUp(self):
         self.user, self.tenant, self.token = _make_user("a@b.com")
         self.client = _client_for(self.token)
-        self.store = Store.objects.create(
-            tenant=self.tenant, name="Toko A", code="JKT01"
-        )
+        self.store = Store.objects.create(tenant=self.tenant, name="Toko A", code="JKT01")
         self.p1 = Product.objects.create(
             tenant=self.tenant, name="Indomie", barcode="111", sell_price=3500
         )
@@ -362,12 +350,8 @@ class MovementsListTests(TestCase):
 class ServiceLayerTests(TestCase):
     def setUp(self):
         self.user, self.tenant, _ = _make_user("a@b.com")
-        self.store = Store.objects.create(
-            tenant=self.tenant, name="Toko A", code="JKT01"
-        )
-        self.product = Product.objects.create(
-            tenant=self.tenant, name="Indomie", sell_price=3500
-        )
+        self.store = Store.objects.create(tenant=self.tenant, name="Toko A", code="JKT01")
+        self.product = Product.objects.create(tenant=self.tenant, name="Indomie", sell_price=3500)
 
     def test_sale_below_zero_raises(self):
         with self.assertRaises(OutOfStockError):
@@ -384,9 +368,7 @@ class ServiceLayerTests(TestCase):
 
     def test_cross_tenant_raises(self):
         _, other_tenant, _ = _make_user("z@b.com")
-        other_store = Store.objects.create(
-            tenant=other_tenant, name="X", code="BDG01"
-        )
+        other_store = Store.objects.create(tenant=other_tenant, name="X", code="BDG01")
         with self.assertRaises(ValueError):
             record_movement(
                 store=other_store,

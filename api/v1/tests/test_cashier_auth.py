@@ -38,84 +38,60 @@ def _cashier_client(token):
 class CashierLoginTests(TestCase):
     def setUp(self):
         self.user, self.tenant, _ = _make_user("a@b.com")
-        self.store = Store.objects.create(
-            tenant=self.tenant, name="Toko Pusat", code="JKT01"
-        )
+        self.store = Store.objects.create(tenant=self.tenant, name="Toko Pusat", code="JKT01")
         self.cashier = _make_cashier(self.store, name="Andi", pin="123456")
         self.url = reverse("api-v1-cashier-login")
 
     def test_login_success(self):
-        res = APIClient().post(
-            self.url, {"store_code": "JKT01", "pin": "123456"}, format="json"
-        )
+        res = APIClient().post(self.url, {"store_code": "JKT01", "pin": "123456"}, format="json")
         self.assertEqual(res.status_code, status.HTTP_200_OK)
         self.assertIn("token", res.data)
         self.assertEqual(res.data["cashier"]["display_name"], "Andi")
         self.assertEqual(res.data["store"]["code"], "JKT01")
         self.cashier.refresh_from_db()
         self.assertIsNotNone(self.cashier.last_login_at)
-        self.assertTrue(
-            CashierSession.objects.filter(cashier=self.cashier).exists()
-        )
+        self.assertTrue(CashierSession.objects.filter(cashier=self.cashier).exists())
 
     def test_login_lowercase_store_code_normalized(self):
-        res = APIClient().post(
-            self.url, {"store_code": "jkt01", "pin": "123456"}, format="json"
-        )
+        res = APIClient().post(self.url, {"store_code": "jkt01", "pin": "123456"}, format="json")
         self.assertEqual(res.status_code, status.HTTP_200_OK)
 
     def test_wrong_pin_400_generic(self):
-        res = APIClient().post(
-            self.url, {"store_code": "JKT01", "pin": "999999"}, format="json"
-        )
+        res = APIClient().post(self.url, {"store_code": "JKT01", "pin": "999999"}, format="json")
         self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(res.data["detail"], "Kode toko atau PIN salah")
 
     def test_wrong_store_code_400_generic(self):
-        res = APIClient().post(
-            self.url, {"store_code": "BDG99", "pin": "123456"}, format="json"
-        )
+        res = APIClient().post(self.url, {"store_code": "BDG99", "pin": "123456"}, format="json")
         self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(res.data["detail"], "Kode toko atau PIN salah")
 
     def test_inactive_cashier_400(self):
         self.cashier.active = False
         self.cashier.save()
-        res = APIClient().post(
-            self.url, {"store_code": "JKT01", "pin": "123456"}, format="json"
-        )
+        res = APIClient().post(self.url, {"store_code": "JKT01", "pin": "123456"}, format="json")
         self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
 
     def test_bad_pin_format_400(self):
-        res = APIClient().post(
-            self.url, {"store_code": "JKT01", "pin": "abc"}, format="json"
-        )
+        res = APIClient().post(self.url, {"store_code": "JKT01", "pin": "abc"}, format="json")
         self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn("pin", res.data)
 
     def test_bad_store_code_format_400(self):
-        res = APIClient().post(
-            self.url, {"store_code": "x", "pin": "123456"}, format="json"
-        )
+        res = APIClient().post(self.url, {"store_code": "x", "pin": "123456"}, format="json")
         self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn("store_code", res.data)
 
     def test_cross_tenant_code_collision_resolves_by_pin(self):
         _, other_tenant, _ = _make_user("z@b.com")
-        other_store = Store.objects.create(
-            tenant=other_tenant, name="Other", code="JKT01"
-        )
+        other_store = Store.objects.create(tenant=other_tenant, name="Other", code="JKT01")
         other_cashier = _make_cashier(other_store, name="Budi", pin="654321")
 
-        res1 = APIClient().post(
-            self.url, {"store_code": "JKT01", "pin": "123456"}, format="json"
-        )
+        res1 = APIClient().post(self.url, {"store_code": "JKT01", "pin": "123456"}, format="json")
         self.assertEqual(res1.status_code, status.HTTP_200_OK)
         self.assertEqual(res1.data["cashier"]["id"], self.cashier.id)
 
-        res2 = APIClient().post(
-            self.url, {"store_code": "JKT01", "pin": "654321"}, format="json"
-        )
+        res2 = APIClient().post(self.url, {"store_code": "JKT01", "pin": "654321"}, format="json")
         self.assertEqual(res2.status_code, status.HTTP_200_OK)
         self.assertEqual(res2.data["cashier"]["id"], other_cashier.id)
 
@@ -123,9 +99,7 @@ class CashierLoginTests(TestCase):
 class CashierSessionAuthTests(TestCase):
     def setUp(self):
         self.user, self.tenant, _ = _make_user("a@b.com")
-        self.store = Store.objects.create(
-            tenant=self.tenant, name="Toko Pusat", code="JKT01"
-        )
+        self.store = Store.objects.create(tenant=self.tenant, name="Toko Pusat", code="JKT01")
         self.cashier = _make_cashier(self.store, name="Andi", pin="123456")
         self.session = CashierSession.issue(self.cashier)
 
@@ -162,9 +136,7 @@ class CashierSessionAuthTests(TestCase):
         client = _cashier_client(self.session.token)
         res = client.post(reverse("api-v1-cashier-logout"))
         self.assertEqual(res.status_code, status.HTTP_204_NO_CONTENT)
-        self.assertFalse(
-            CashierSession.objects.filter(id=self.session.id).exists()
-        )
+        self.assertFalse(CashierSession.objects.filter(id=self.session.id).exists())
 
     def test_admin_token_rejected_on_cashier_endpoint(self):
         admin_token = Token.objects.get(user=self.user)

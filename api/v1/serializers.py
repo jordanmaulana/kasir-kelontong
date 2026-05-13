@@ -1,4 +1,5 @@
 import re
+from profile.models import Profile
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
@@ -8,9 +9,8 @@ from google.auth.transport import requests as google_requests
 from google.oauth2 import id_token
 from rest_framework import serializers
 
-from cashier.models import Cashier, CashierSession
+from cashier.models import Cashier
 from product.models import Product
-from profile.models import Profile
 from store.models import Store
 
 STORE_CODE_RE = re.compile(r"^[A-Z0-9]{3,10}$")
@@ -58,9 +58,7 @@ class LoginSerializer(serializers.Serializer):
 class StoreSerializer(serializers.Serializer):
     id = serializers.CharField(read_only=True)
     name = serializers.CharField(max_length=120)
-    address = serializers.CharField(
-        required=False, allow_blank=True, default="", max_length=1000
-    )
+    address = serializers.CharField(required=False, allow_blank=True, default="", max_length=1000)
     code = serializers.CharField(max_length=10)
     created_on = serializers.DateTimeField(read_only=True)
     updated_on = serializers.DateTimeField(read_only=True)
@@ -68,9 +66,7 @@ class StoreSerializer(serializers.Serializer):
     def validate_code(self, value):
         code = value.strip().upper()
         if not STORE_CODE_RE.match(code):
-            raise serializers.ValidationError(
-                "Kode harus 3–10 huruf atau angka"
-            )
+            raise serializers.ValidationError("Kode harus 3–10 huruf atau angka")
         tenant = self.context["tenant"]
         qs = Store.objects.filter(tenant=tenant, code=code)
         if self.instance is not None:
@@ -122,9 +118,7 @@ class CashierSerializer(serializers.Serializer):
             qs = qs.exclude(pk=self.instance.pk)
         for row in qs:
             if row.check_pin(pin):
-                raise serializers.ValidationError(
-                    {"pin": "PIN sudah dipakai kasir lain"}
-                )
+                raise serializers.ValidationError({"pin": "PIN sudah dipakai kasir lain"})
         return attrs
 
     def create(self, validated_data):
@@ -174,9 +168,7 @@ class ProductSerializer(serializers.Serializer):
         if code == "":
             return None
         if not BARCODE_RE.match(code):
-            raise serializers.ValidationError(
-                "Barcode 1–64 karakter, huruf/angka/tanda hubung"
-            )
+            raise serializers.ValidationError("Barcode 1–64 karakter, huruf/angka/tanda hubung")
         tenant = self.context["tenant"]
         qs = Product.objects.filter(tenant=tenant, barcode=code)
         if self.instance is not None:
@@ -273,14 +265,12 @@ class ReceivingSerializer(serializers.Serializer):
         seen = set()
         for pid in product_ids:
             if pid in seen:
-                raise serializers.ValidationError(
-                    f"Produk {pid} duplikat dalam satu penerimaan"
-                )
+                raise serializers.ValidationError(f"Produk {pid} duplikat dalam satu penerimaan")
             seen.add(pid)
         found = set(
-            Product.objects.filter(
-                id__in=product_ids, tenant=store.tenant
-            ).values_list("id", flat=True)
+            Product.objects.filter(id__in=product_ids, tenant=store.tenant).values_list(
+                "id", flat=True
+            )
         )
         missing = set(product_ids) - found
         if missing:
@@ -306,18 +296,12 @@ class AdjustmentSerializer(serializers.Serializer):
         has_delta = "delta" in attrs
         has_target = "target_qty" in attrs
         if has_delta == has_target:
-            raise serializers.ValidationError(
-                "Isi salah satu: delta atau target_qty"
-            )
+            raise serializers.ValidationError("Isi salah satu: delta atau target_qty")
         if has_delta and attrs["delta"] == 0:
             raise serializers.ValidationError({"delta": "Delta tidak boleh 0"})
         store = self.context["store"]
-        if not Product.objects.filter(
-            id=attrs["product_id"], tenant=store.tenant
-        ).exists():
-            raise serializers.ValidationError(
-                {"product_id": "Produk tidak ditemukan"}
-            )
+        if not Product.objects.filter(id=attrs["product_id"], tenant=store.tenant).exists():
+            raise serializers.ValidationError({"product_id": "Produk tidak ditemukan"})
         return attrs
 
 
@@ -337,9 +321,7 @@ class SaleCreateSerializer(serializers.Serializer):
         for line in value:
             pid = line["product_id"]
             if pid in seen:
-                raise serializers.ValidationError(
-                    f"Produk {pid} duplikat dalam satu transaksi"
-                )
+                raise serializers.ValidationError(f"Produk {pid} duplikat dalam satu transaksi")
             seen.add(pid)
         return value
 
@@ -348,9 +330,7 @@ class SaleLineSerializer(serializers.Serializer):
     id = serializers.CharField(read_only=True)
     product_id = serializers.CharField(source="product.id", read_only=True)
     product_name = serializers.CharField(source="product.name", read_only=True)
-    barcode = serializers.CharField(
-        source="product.barcode", read_only=True, allow_null=True
-    )
+    barcode = serializers.CharField(source="product.barcode", read_only=True, allow_null=True)
     qty = serializers.IntegerField(read_only=True)
     unit_price = serializers.IntegerField(read_only=True)
     line_total = serializers.IntegerField(read_only=True)
@@ -360,9 +340,7 @@ class SaleDetailSerializer(serializers.Serializer):
     id = serializers.CharField(read_only=True)
     store_id = serializers.CharField(source="store.id", read_only=True)
     cashier_id = serializers.CharField(source="cashier.id", read_only=True)
-    cashier_name = serializers.CharField(
-        source="cashier.display_name", read_only=True
-    )
+    cashier_name = serializers.CharField(source="cashier.display_name", read_only=True)
     subtotal = serializers.IntegerField(read_only=True)
     tendered = serializers.IntegerField(read_only=True)
     change = serializers.IntegerField(read_only=True)
@@ -380,6 +358,27 @@ class SaleListSerializer(serializers.Serializer):
 
     def get_line_count(self, obj):
         return obj.lines.count()
+
+
+class SaleReportRowSerializer(serializers.Serializer):
+    id = serializers.CharField(read_only=True)
+    created_on = serializers.DateTimeField(read_only=True)
+    cashier_name = serializers.CharField(source="cashier.display_name", read_only=True)
+    subtotal = serializers.IntegerField(read_only=True)
+    tendered = serializers.IntegerField(read_only=True)
+    change = serializers.IntegerField(read_only=True)
+    line_count = serializers.SerializerMethodField()
+
+    def get_line_count(self, obj):
+        return len(obj.lines.all())
+
+
+class TopProductRowSerializer(serializers.Serializer):
+    product_id = serializers.CharField()
+    name = serializers.CharField()
+    barcode = serializers.CharField(allow_null=True)
+    qty_sold = serializers.IntegerField()
+    revenue = serializers.IntegerField()
 
 
 class GoogleAuthSerializer(serializers.Serializer):

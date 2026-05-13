@@ -56,39 +56,29 @@ class StoresListCreateTests(TestCase):
         self.assertTrue(Store.objects.filter(tenant=self.tenant, code="JKT01").exists())
 
     def test_create_normalizes_code_to_upper(self):
-        res = self.client.post(
-            self.url, {"name": "Toko", "code": "jkt01"}, format="json"
-        )
+        res = self.client.post(self.url, {"name": "Toko", "code": "jkt01"}, format="json")
         self.assertEqual(res.status_code, status.HTTP_201_CREATED)
         self.assertEqual(res.data["code"], "JKT01")
 
     def test_create_duplicate_code_in_tenant_400(self):
         Store.objects.create(tenant=self.tenant, name="Toko", code="JKT01")
-        res = self.client.post(
-            self.url, {"name": "Toko 2", "code": "JKT01"}, format="json"
-        )
+        res = self.client.post(self.url, {"name": "Toko 2", "code": "JKT01"}, format="json")
         self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn("code", res.data)
 
     def test_same_code_allowed_across_tenants(self):
         other_user, other_tenant, _ = _make_user("z@b.com")
         Store.objects.create(tenant=other_tenant, name="Other", code="JKT01")
-        res = self.client.post(
-            self.url, {"name": "Toko Pusat", "code": "JKT01"}, format="json"
-        )
+        res = self.client.post(self.url, {"name": "Toko Pusat", "code": "JKT01"}, format="json")
         self.assertEqual(res.status_code, status.HTTP_201_CREATED)
 
     def test_invalid_code_format_400(self):
-        res = self.client.post(
-            self.url, {"name": "Toko", "code": "JK"}, format="json"
-        )
+        res = self.client.post(self.url, {"name": "Toko", "code": "JK"}, format="json")
         self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn("code", res.data)
 
     def test_invalid_code_special_chars_400(self):
-        res = self.client.post(
-            self.url, {"name": "Toko", "code": "JKT-01"}, format="json"
-        )
+        res = self.client.post(self.url, {"name": "Toko", "code": "JKT-01"}, format="json")
         self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn("code", res.data)
 
@@ -106,9 +96,7 @@ class StoreDetailTests(TestCase):
     def setUp(self):
         self.user, self.tenant, self.token = _make_user("a@b.com")
         self.client = _client_for(self.token)
-        self.store = Store.objects.create(
-            tenant=self.tenant, name="Toko Pusat", code="JKT01"
-        )
+        self.store = Store.objects.create(tenant=self.tenant, name="Toko Pusat", code="JKT01")
         self.url = reverse("api-v1-store-detail", args=[self.store.id])
 
     def test_get_own_store(self):
@@ -117,9 +105,7 @@ class StoreDetailTests(TestCase):
         self.assertEqual(res.data["code"], "JKT01")
 
     def test_patch_updates_fields(self):
-        res = self.client.patch(
-            self.url, {"name": "Toko Cabang"}, format="json"
-        )
+        res = self.client.patch(self.url, {"name": "Toko Cabang"}, format="json")
         self.assertEqual(res.status_code, status.HTTP_200_OK)
         self.store.refresh_from_db()
         self.assertEqual(self.store.name, "Toko Cabang")
@@ -153,9 +139,7 @@ class StoreDetailTests(TestCase):
 
     def test_tenant_isolation_patch_404(self):
         _, _, other_token = _make_user("z@b.com")
-        res = _client_for(other_token).patch(
-            self.url, {"name": "Hacked"}, format="json"
-        )
+        res = _client_for(other_token).patch(self.url, {"name": "Hacked"}, format="json")
         self.assertEqual(res.status_code, status.HTTP_404_NOT_FOUND)
         self.store.refresh_from_db()
         self.assertEqual(self.store.name, "Toko Pusat")
@@ -167,9 +151,7 @@ class StoreDetailTests(TestCase):
         self.assertTrue(Store.objects.filter(id=self.store.id).exists())
 
     def test_unknown_id_404(self):
-        res = self.client.get(
-            reverse("api-v1-store-detail", args=["000000000000000000000000"])
-        )
+        res = self.client.get(reverse("api-v1-store-detail", args=["000000000000000000000000"]))
         self.assertEqual(res.status_code, status.HTTP_404_NOT_FOUND)
 
     def test_unauthenticated_401(self):

@@ -1,9 +1,10 @@
+from profile.models import Profile
+
 from django.contrib.auth.models import User
 from django.core.management.base import BaseCommand
 from django.db import transaction
 
 from cashier.models import Cashier
-from profile.models import Profile
 from store.models import Store
 from tenant.models import Tenant
 
@@ -23,9 +24,7 @@ class Command(BaseCommand):
 
         Profile.objects.get_or_create(user=user, defaults={"onboarded": True})
 
-        tenant, _ = Tenant.objects.get_or_create(
-            owner=user, defaults={"name": "Demo Tenant"}
-        )
+        tenant, _ = Tenant.objects.get_or_create(owner=user, defaults={"name": "Demo Tenant"})
 
         store, _ = Store.objects.get_or_create(
             tenant=tenant,

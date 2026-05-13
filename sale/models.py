@@ -4,12 +4,8 @@ from core.models import BaseModel
 
 
 class Sale(BaseModel):
-    store = models.ForeignKey(
-        "store.Store", on_delete=models.PROTECT, related_name="sales"
-    )
-    cashier = models.ForeignKey(
-        "cashier.Cashier", on_delete=models.PROTECT, related_name="sales"
-    )
+    store = models.ForeignKey("store.Store", on_delete=models.PROTECT, related_name="sales")
+    cashier = models.ForeignKey("cashier.Cashier", on_delete=models.PROTECT, related_name="sales")
     subtotal = models.IntegerField()
     tendered = models.IntegerField()
     change = models.IntegerField()
@@ -24,9 +20,7 @@ class Sale(BaseModel):
 
 class SaleLine(BaseModel):
     sale = models.ForeignKey(Sale, on_delete=models.CASCADE, related_name="lines")
-    product = models.ForeignKey(
-        "product.Product", on_delete=models.PROTECT, related_name="+"
-    )
+    product = models.ForeignKey("product.Product", on_delete=models.PROTECT, related_name="+")
     qty = models.PositiveIntegerField()
     unit_price = models.IntegerField()
     line_total = models.IntegerField()

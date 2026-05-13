@@ -44,10 +44,7 @@ class StoresView(SuperuserRequiredMixin, View):
 
 class CashiersView(SuperuserRequiredMixin, View):
     def get(self, request):
-        qs = (
-            Cashier.objects.select_related("store", "store__tenant")
-            .order_by("-created_on")
-        )
+        qs = Cashier.objects.select_related("store", "store__tenant").order_by("-created_on")
         paginator = Paginator(qs, 25)
         page = paginator.get_page(request.GET.get("page"))
         return render(request, "cashiers.html", {"page": page})

@@ -15,9 +15,7 @@ class CashierTokenAuthentication(BaseAuthentication):
         if not token:
             raise AuthenticationFailed("Token kasir tidak valid")
         try:
-            session = CashierSession.objects.select_related("cashier", "store").get(
-                token=token
-            )
+            session = CashierSession.objects.select_related("cashier", "store").get(token=token)
         except CashierSession.DoesNotExist as exc:
             raise AuthenticationFailed("Sesi kasir tidak ditemukan") from exc
         if session.is_expired():
