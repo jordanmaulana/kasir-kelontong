@@ -57,6 +57,7 @@ export function ProductFormDialog({ open, onOpenChange, product }: Props) {
     handleSubmit,
     reset,
     setError,
+    setFocus,
     formState: { errors },
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -80,8 +81,14 @@ export function ProductFormDialog({ open, onOpenChange, product }: Props) {
       sell_price: values.sell_price,
     };
     const onSuccess = () => {
-      toast.success(isEdit ? "Produk diperbarui" : "Produk berhasil dibuat");
-      onOpenChange(false);
+      if (isEdit) {
+        toast.success("Produk diperbarui");
+        onOpenChange(false);
+        return;
+      }
+      toast.success("Produk berhasil dibuat");
+      reset({ barcode: "", name: "", sell_price: 0 });
+      requestAnimationFrame(() => setFocus("barcode"));
     };
     const onError = (err: unknown) => {
       if (err instanceof ApiError) {
