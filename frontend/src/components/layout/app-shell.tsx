@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 
 const NAV = [
   { to: "/dashboard", label: "Dashboard" },
+  { to: "/dashboard/products", label: "Produk" },
 ];
 
 export function AppShell() {

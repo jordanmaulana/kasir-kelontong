@@ -1,0 +1,243 @@
+from django.contrib.auth import get_user_model
+from django.test import TestCase
+from django.urls import reverse
+from rest_framework import status
+from rest_framework.authtoken.models import Token
+from rest_framework.test import APIClient
+
+from product.models import Product
+from tenant.models import Tenant
+
+User = get_user_model()
+
+
+def _make_user(email, password="hunter2hunter2"):
+    user = User.objects.create_user(username=email, email=email, password=password)
+    tenant = Tenant.objects.create(owner=user, name="My Business")
+    token = Token.objects.create(user=user)
+    return user, tenant, token
+
+
+def _client_for(token):
+    client = APIClient()
+    client.credentials(HTTP_AUTHORIZATION=f"Token {token.key}")
+    return client
+
+
+class ProductsListCreateTests(TestCase):
+    def setUp(self):
+        self.user, self.tenant, self.token = _make_user("a@b.com")
+        self.client = _client_for(self.token)
+        self.url = reverse("api-v1-products")
+
+    def test_list_empty(self):
+        res = self.client.get(self.url)
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertEqual(res.data, [])
+
+    def test_list_returns_only_own_tenant_products(self):
+        Product.objects.create(tenant=self.tenant, name="Indomie", sell_price=3500)
+        _, other_tenant, _ = _make_user("z@b.com")
+        Product.objects.create(tenant=other_tenant, name="Other", sell_price=1000)
+        res = self.client.get(self.url)
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(res.data), 1)
+        self.assertEqual(res.data[0]["name"], "Indomie")
+
+    def test_create_product_minimal(self):
+        res = self.client.post(
+            self.url, {"name": "Gula 1kg", "sell_price": 15000}, format="json"
+        )
+        self.assertEqual(res.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(res.data["name"], "Gula 1kg")
+        self.assertEqual(res.data["sell_price"], 15000)
+        self.assertIsNone(res.data["barcode"])
+
+    def test_create_product_with_barcode(self):
+        res = self.client.post(
+            self.url,
+            {
+                "name": "Indomie Goreng",
+                "barcode": "8992388101012",
+                "sell_price": 3500,
+            },
+            format="json",
+        )
+        self.assertEqual(res.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(res.data["barcode"], "8992388101012")
+
+    def test_barcode_unique_within_tenant_rejects_dup(self):
+        Product.objects.create(
+            tenant=self.tenant, name="A", barcode="111", sell_price=100
+        )
+        res = self.client.post(
+            self.url,
+            {"name": "B", "barcode": "111", "sell_price": 200},
+            format="json",
+        )
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("barcode", res.data)
+
+    def test_same_barcode_allowed_across_tenants(self):
+        _, other_tenant, _ = _make_user("z@b.com")
+        Product.objects.create(
+            tenant=other_tenant, name="A", barcode="111", sell_price=100
+        )
+        res = self.client.post(
+            self.url,
+            {"name": "B", "barcode": "111", "sell_price": 200},
+            format="json",
+        )
+        self.assertEqual(res.status_code, status.HTTP_201_CREATED)
+
+    def test_multiple_null_barcodes_allowed_in_same_tenant(self):
+        self.client.post(
+            self.url, {"name": "A", "sell_price": 100}, format="json"
+        )
+        res = self.client.post(
+            self.url, {"name": "B", "sell_price": 200}, format="json"
+        )
+        self.assertEqual(res.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(Product.objects.filter(tenant=self.tenant).count(), 2)
+
+    def test_missing_name_400(self):
+        res = self.client.post(
+            self.url, {"sell_price": 100}, format="json"
+        )
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("name", res.data)
+
+    def test_negative_price_rejected(self):
+        res = self.client.post(
+            self.url, {"name": "X", "sell_price": -1}, format="json"
+        )
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("sell_price", res.data)
+
+    def test_invalid_barcode_chars_400(self):
+        res = self.client.post(
+            self.url,
+            {"name": "X", "barcode": "abc def", "sell_price": 100},
+            format="json",
+        )
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("barcode", res.data)
+
+    def test_blank_barcode_stored_as_null(self):
+        res = self.client.post(
+            self.url,
+            {"name": "X", "barcode": "", "sell_price": 100},
+            format="json",
+        )
+        self.assertEqual(res.status_code, status.HTTP_201_CREATED)
+        self.assertIsNone(res.data["barcode"])
+        product = Product.objects.get(id=res.data["id"])
+        self.assertIsNone(product.barcode)
+
+    def test_search_by_q_param(self):
+        Product.objects.create(
+            tenant=self.tenant, name="Indomie Goreng", barcode="111", sell_price=3500
+        )
+        Product.objects.create(
+            tenant=self.tenant, name="Sarimi", barcode="222", sell_price=3000
+        )
+        res = self.client.get(self.url + "?q=indomie")
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(res.data), 1)
+        self.assertEqual(res.data[0]["name"], "Indomie Goreng")
+
+    def test_search_by_barcode_substring(self):
+        Product.objects.create(
+            tenant=self.tenant, name="A", barcode="8992388101012", sell_price=100
+        )
+        Product.objects.create(tenant=self.tenant, name="B", sell_price=200)
+        res = self.client.get(self.url + "?q=88101")
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(res.data), 1)
+        self.assertEqual(res.data[0]["name"], "A")
+
+    def test_unauthenticated_401(self):
+        res = APIClient().get(self.url)
+        self.assertEqual(res.status_code, status.HTTP_401_UNAUTHORIZED)
+
+
+class ProductDetailTests(TestCase):
+    def setUp(self):
+        self.user, self.tenant, self.token = _make_user("a@b.com")
+        self.client = _client_for(self.token)
+        self.product = Product.objects.create(
+            tenant=self.tenant,
+            name="Indomie Goreng",
+            barcode="8992388101012",
+            sell_price=3500,
+        )
+        self.url = reverse("api-v1-product-detail", args=[self.product.id])
+
+    def test_get_own_product(self):
+        res = self.client.get(self.url)
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertEqual(res.data["name"], "Indomie Goreng")
+
+    def test_patch_updates_fields(self):
+        res = self.client.patch(
+            self.url, {"name": "Indomie Goreng Spesial", "sell_price": 4000}, format="json"
+        )
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.product.refresh_from_db()
+        self.assertEqual(self.product.name, "Indomie Goreng Spesial")
+        self.assertEqual(self.product.sell_price, 4000)
+
+    def test_patch_can_clear_barcode(self):
+        res = self.client.patch(self.url, {"barcode": ""}, format="json")
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.product.refresh_from_db()
+        self.assertIsNone(self.product.barcode)
+
+    def test_patch_duplicate_barcode_400(self):
+        Product.objects.create(
+            tenant=self.tenant, name="Other", barcode="999", sell_price=100
+        )
+        res = self.client.patch(self.url, {"barcode": "999"}, format="json")
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("barcode", res.data)
+
+    def test_patch_same_barcode_allowed_on_self(self):
+        res = self.client.patch(
+            self.url, {"barcode": "8992388101012"}, format="json"
+        )
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+
+    def test_delete_returns_204(self):
+        res = self.client.delete(self.url)
+        self.assertEqual(res.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertFalse(Product.objects.filter(id=self.product.id).exists())
+
+    def test_tenant_isolation_get_404(self):
+        _, _, other_token = _make_user("z@b.com")
+        res = _client_for(other_token).get(self.url)
+        self.assertEqual(res.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_tenant_isolation_patch_404(self):
+        _, _, other_token = _make_user("z@b.com")
+        res = _client_for(other_token).patch(
+            self.url, {"name": "Hacked"}, format="json"
+        )
+        self.assertEqual(res.status_code, status.HTTP_404_NOT_FOUND)
+        self.product.refresh_from_db()
+        self.assertEqual(self.product.name, "Indomie Goreng")
+
+    def test_tenant_isolation_delete_404(self):
+        _, _, other_token = _make_user("z@b.com")
+        res = _client_for(other_token).delete(self.url)
+        self.assertEqual(res.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertTrue(Product.objects.filter(id=self.product.id).exists())
+
+    def test_unknown_id_404(self):
+        res = self.client.get(
+            reverse("api-v1-product-detail", args=["000000000000000000000000"])
+        )
+        self.assertEqual(res.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_unauthenticated_401(self):
+        res = APIClient().get(self.url)
+        self.assertEqual(res.status_code, status.HTTP_401_UNAUTHORIZED)

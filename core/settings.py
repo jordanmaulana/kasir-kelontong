@@ -39,6 +39,7 @@ INSTALLED_APPS = [
     "tenant",
     "store",
     "cashier",
+    "product",
 ]
 
 REST_FRAMEWORK = {

@@ -9,11 +9,13 @@ from google.oauth2 import id_token
 from rest_framework import serializers
 
 from cashier.models import Cashier, CashierSession
+from product.models import Product
 from profile.models import Profile
 from store.models import Store
 
 STORE_CODE_RE = re.compile(r"^[A-Z0-9]{3,10}$")
 PIN_RE = re.compile(r"^\d{6}$")
+BARCODE_RE = re.compile(r"^[A-Za-z0-9\-]{1,64}$")
 
 User = get_user_model()
 
@@ -145,6 +147,50 @@ class CashierSerializer(serializers.Serializer):
             setattr(instance, key, value)
         if pin is not None:
             instance.set_pin(pin)
+        instance.save()
+        return instance
+
+
+class ProductSerializer(serializers.Serializer):
+    id = serializers.CharField(read_only=True)
+    barcode = serializers.CharField(
+        required=False, allow_blank=True, allow_null=True, max_length=64
+    )
+    name = serializers.CharField(max_length=200)
+    sell_price = serializers.IntegerField(min_value=0)
+    created_on = serializers.DateTimeField(read_only=True)
+    updated_on = serializers.DateTimeField(read_only=True)
+
+    def validate_name(self, value):
+        name = value.strip()
+        if not name:
+            raise serializers.ValidationError("Nama wajib diisi")
+        return name
+
+    def validate_barcode(self, value):
+        if value is None:
+            return None
+        code = value.strip()
+        if code == "":
+            return None
+        if not BARCODE_RE.match(code):
+            raise serializers.ValidationError(
+                "Barcode 1–64 karakter, huruf/angka/tanda hubung"
+            )
+        tenant = self.context["tenant"]
+        qs = Product.objects.filter(tenant=tenant, barcode=code)
+        if self.instance is not None:
+            qs = qs.exclude(pk=self.instance.pk)
+        if qs.exists():
+            raise serializers.ValidationError("Barcode sudah dipakai produk lain")
+        return code
+
+    def create(self, validated_data):
+        return Product.objects.create(**validated_data)
+
+    def update(self, instance, validated_data):
+        for key, value in validated_data.items():
+            setattr(instance, key, value)
         instance.save()
         return instance
 

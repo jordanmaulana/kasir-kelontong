@@ -5,6 +5,7 @@ from api.v1 import (
     cashier_auth_api,
     cashiers_api,
     payments_api,
+    products_api,
     stores_api,
 )
 
@@ -41,6 +42,12 @@ urlpatterns = [
         "stores/<str:store_id>/cashiers/<str:cashier_id>/",
         cashiers_api.CashierDetailView.as_view(),
         name="api-v1-cashier-detail",
+    ),
+    path("products/", products_api.ProductsView.as_view(), name="api-v1-products"),
+    path(
+        "products/<str:product_id>/",
+        products_api.ProductDetailView.as_view(),
+        name="api-v1-product-detail",
     ),
     path("payments/mayar/webhook/", payments_api.webhook, name="api-v1-mayar-webhook"),
 ]
