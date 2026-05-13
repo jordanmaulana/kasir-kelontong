@@ -230,6 +230,97 @@ class CashierSessionSerializer(serializers.Serializer):
         return {"id": s.id, "code": s.code, "name": s.name}
 
 
+class StockListItemSerializer(serializers.Serializer):
+    product_id = serializers.CharField()
+    name = serializers.CharField()
+    barcode = serializers.CharField(allow_null=True)
+    sell_price = serializers.IntegerField()
+    qty = serializers.IntegerField()
+    last_movement_at = serializers.DateTimeField(allow_null=True)
+
+
+class StockMovementSerializer(serializers.Serializer):
+    id = serializers.CharField(read_only=True)
+    product_id = serializers.CharField(source="product.id", read_only=True)
+    product_name = serializers.CharField(source="product.name", read_only=True)
+    barcode = serializers.CharField(source="product.barcode", read_only=True, allow_null=True)
+    delta = serializers.IntegerField(read_only=True)
+    reason = serializers.CharField(read_only=True)
+    note = serializers.CharField(read_only=True, allow_blank=True)
+    ref_type = serializers.CharField(read_only=True, allow_blank=True)
+    ref_id = serializers.CharField(read_only=True, allow_blank=True)
+    actor_email = serializers.SerializerMethodField()
+    created_on = serializers.DateTimeField(read_only=True)
+
+    def get_actor_email(self, obj):
+        return obj.actor.email if obj.actor_id else None
+
+
+class ReceivingItemSerializer(serializers.Serializer):
+    product_id = serializers.CharField()
+    qty = serializers.IntegerField(min_value=1)
+    note = serializers.CharField(required=False, allow_blank=True, default="")
+
+
+class ReceivingSerializer(serializers.Serializer):
+    items = ReceivingItemSerializer(many=True)
+
+    def validate_items(self, value):
+        if not value:
+            raise serializers.ValidationError("Minimal 1 item")
+        store = self.context["store"]
+        product_ids = [item["product_id"] for item in value]
+        seen = set()
+        for pid in product_ids:
+            if pid in seen:
+                raise serializers.ValidationError(
+                    f"Produk {pid} duplikat dalam satu penerimaan"
+                )
+            seen.add(pid)
+        found = set(
+            Product.objects.filter(
+                id__in=product_ids, tenant=store.tenant
+            ).values_list("id", flat=True)
+        )
+        missing = set(product_ids) - found
+        if missing:
+            raise serializers.ValidationError(
+                f"Produk tidak ditemukan: {', '.join(sorted(missing))}"
+            )
+        return value
+
+
+class AdjustmentSerializer(serializers.Serializer):
+    product_id = serializers.CharField()
+    delta = serializers.IntegerField(required=False)
+    target_qty = serializers.IntegerField(required=False, min_value=0)
+    note = serializers.CharField()
+
+    def validate_note(self, value):
+        note = value.strip()
+        if not note:
+            raise serializers.ValidationError("Catatan wajib diisi")
+        return note
+
+    def validate(self, attrs):
+        has_delta = "delta" in attrs
+        has_target = "target_qty" in attrs
+        if has_delta == has_target:
+            raise serializers.ValidationError(
+                "Isi salah satu: delta atau target_qty"
+            )
+        if has_delta and attrs["delta"] == 0:
+            raise serializers.ValidationError({"delta": "Delta tidak boleh 0"})
+        store = self.context["store"]
+        if not Product.objects.filter(
+            id=attrs["product_id"], tenant=store.tenant
+        ).exists():
+            raise serializers.ValidationError(
+                {"product_id": "Produk tidak ditemukan"}
+            )
+        return attrs
+
+
 class GoogleAuthSerializer(serializers.Serializer):
     credential = serializers.CharField()
 

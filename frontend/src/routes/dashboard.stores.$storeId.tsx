@@ -8,6 +8,8 @@ import {
   TabsTrigger,
 } from "@/components/ui/tabs";
 import { CashiersTab } from "@/features/cashiers/components/cashiers-tab";
+import { ReceivingTab } from "@/features/stock/components/receiving-tab";
+import { StockTab } from "@/features/stock/components/stock-tab";
 import { useStores } from "@/features/stores/hooks";
 
 export const Route = createFileRoute("/dashboard/stores/$storeId")({
@@ -71,10 +73,10 @@ function StoreDetailPage() {
               <CashiersTab storeId={store.id} />
             </TabsContent>
             <TabsContent value="stok">
-              <ComingSoon label="Stok" />
+              <StockTab storeId={store.id} />
             </TabsContent>
             <TabsContent value="penerimaan">
-              <ComingSoon label="Penerimaan" />
+              <ReceivingTab storeId={store.id} />
             </TabsContent>
             <TabsContent value="laporan">
               <ComingSoon label="Laporan" />

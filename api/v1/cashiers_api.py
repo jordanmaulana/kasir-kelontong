@@ -4,22 +4,13 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from api.v1._tenant import require_tenant
+from api.v1._tenant import require_store
 from api.v1.serializers import CashierSerializer
 from cashier.models import Cashier
-from store.models import Store
-
-
-def _get_store(user, store_id):
-    tenant, err = require_tenant(user)
-    if err:
-        return None, err
-    store = get_object_or_404(Store, id=store_id, tenant=tenant)
-    return store, None
 
 
 def _get_cashier(user, store_id, cashier_id):
-    store, err = _get_store(user, store_id)
+    store, err = require_store(user, store_id)
     if err:
         return None, err
     cashier = get_object_or_404(Cashier, id=cashier_id, store=store)
@@ -30,14 +21,14 @@ class CashiersView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request, store_id):
-        store, err = _get_store(request.user, store_id)
+        store, err = require_store(request.user, store_id)
         if err:
             return err
         qs = Cashier.objects.filter(store=store)
         return Response(CashierSerializer(qs, many=True).data)
 
     def post(self, request, store_id):
-        store, err = _get_store(request.user, store_id)
+        store, err = require_store(request.user, store_id)
         if err:
             return err
         serializer = CashierSerializer(

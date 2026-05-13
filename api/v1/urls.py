@@ -6,6 +6,7 @@ from api.v1 import (
     cashiers_api,
     payments_api,
     products_api,
+    stock_api,
     stores_api,
 )
 
@@ -48,6 +49,26 @@ urlpatterns = [
         "products/<str:product_id>/",
         products_api.ProductDetailView.as_view(),
         name="api-v1-product-detail",
+    ),
+    path(
+        "stores/<str:store_id>/stock/",
+        stock_api.StoreStockView.as_view(),
+        name="api-v1-store-stock",
+    ),
+    path(
+        "stores/<str:store_id>/stock/movements/",
+        stock_api.StoreMovementsView.as_view(),
+        name="api-v1-store-movements",
+    ),
+    path(
+        "stores/<str:store_id>/receiving/",
+        stock_api.StoreReceivingView.as_view(),
+        name="api-v1-store-receiving",
+    ),
+    path(
+        "stores/<str:store_id>/adjustments/",
+        stock_api.StoreAdjustmentView.as_view(),
+        name="api-v1-store-adjustment",
     ),
     path("payments/mayar/webhook/", payments_api.webhook, name="api-v1-mayar-webhook"),
 ]
