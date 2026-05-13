@@ -16,8 +16,10 @@ export function AuthGate() {
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const sessionExpiredFiredRef = useRef(false);
+  const isCashierRoute = pathname.startsWith("/cashier");
 
   useEffect(() => {
+    if (isCashierRoute) return;
     if (!token || user) return;
     let cancelled = false;
     me()
@@ -38,6 +40,7 @@ export function AuthGate() {
   }, [token, user, setToken, setUser]);
 
   useEffect(() => {
+    if (isCashierRoute) return;
     if (!token) {
       if (!PUBLIC_PATHS.has(pathname)) navigate({ to: "/login" });
       return;
@@ -50,8 +53,9 @@ export function AuthGate() {
     if (user.onboarded && (PUBLIC_PATHS.has(pathname) || pathname === "/onboarding")) {
       navigate({ to: "/dashboard" });
     }
-  }, [token, user, pathname, navigate]);
+  }, [token, user, pathname, navigate, isCashierRoute]);
 
+  if (isCashierRoute) return <Outlet />;
   if (!token || !user || FULL_BLEED_PATHS.has(pathname)) {
     return <Outlet />;
   }

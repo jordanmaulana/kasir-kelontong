@@ -1,3 +1,4 @@
+import { Link } from "@tanstack/react-router";
 import { Pencil, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
 
@@ -77,10 +78,22 @@ export function StoresPage() {
               {stores.map((store) => (
                 <TableRow key={store.id}>
                   <TableCell className="font-mono text-slate-900">
-                    {store.code}
+                    <Link
+                      to="/dashboard/stores/$storeId"
+                      params={{ storeId: store.id }}
+                      className="hover:underline"
+                    >
+                      {store.code}
+                    </Link>
                   </TableCell>
                   <TableCell className="font-medium text-slate-900">
-                    {store.name}
+                    <Link
+                      to="/dashboard/stores/$storeId"
+                      params={{ storeId: store.id }}
+                      className="hover:underline"
+                    >
+                      {store.name}
+                    </Link>
                   </TableCell>
                   <TableCell className="text-slate-600">
                     {store.address || "—"}

@@ -8,9 +8,10 @@ from google.auth.transport import requests as google_requests
 from google.oauth2 import id_token
 from rest_framework import serializers
 
-from core.models import Profile, Store
+from core.models import Cashier, CashierSession, Profile, Store
 
 STORE_CODE_RE = re.compile(r"^[A-Z0-9]{3,10}$")
+PIN_RE = re.compile(r"^\d{6}$")
 
 User = get_user_model()
 
@@ -82,6 +83,103 @@ class StoreSerializer(serializers.Serializer):
             setattr(instance, key, value)
         instance.save()
         return instance
+
+
+class CashierSerializer(serializers.Serializer):
+    id = serializers.CharField(read_only=True)
+    store = serializers.CharField(source="store_id", read_only=True)
+    display_name = serializers.CharField(max_length=80)
+    pin = serializers.CharField(write_only=True, required=False, allow_blank=False)
+    active = serializers.BooleanField(required=False)
+    last_login_at = serializers.DateTimeField(read_only=True)
+    created_on = serializers.DateTimeField(read_only=True)
+    updated_on = serializers.DateTimeField(read_only=True)
+
+    def validate_display_name(self, value):
+        name = value.strip()
+        if not name:
+            raise serializers.ValidationError("Nama wajib diisi")
+        return name
+
+    def validate_pin(self, value):
+        if not PIN_RE.match(value):
+            raise serializers.ValidationError("PIN harus 6 digit angka")
+        return value
+
+    def validate(self, attrs):
+        pin = attrs.get("pin")
+        if pin is None:
+            if self.instance is None:
+                raise serializers.ValidationError({"pin": "PIN wajib diisi"})
+            return attrs
+        store = self.context["store"]
+        qs = Cashier.objects.filter(store=store, active=True)
+        if self.instance is not None:
+            qs = qs.exclude(pk=self.instance.pk)
+        for row in qs:
+            if row.check_pin(pin):
+                raise serializers.ValidationError(
+                    {"pin": "PIN sudah dipakai kasir lain"}
+                )
+        return attrs
+
+    def create(self, validated_data):
+        pin = validated_data.pop("pin")
+        cashier = Cashier(
+            store=self.context["store"],
+            display_name=validated_data["display_name"],
+            active=validated_data.get("active", True),
+        )
+        cashier.set_pin(pin)
+        actor = validated_data.get("actor")
+        if actor is not None:
+            cashier.actor = actor
+        cashier.save()
+        return cashier
+
+    def update(self, instance, validated_data):
+        pin = validated_data.pop("pin", None)
+        for key, value in validated_data.items():
+            setattr(instance, key, value)
+        if pin is not None:
+            instance.set_pin(pin)
+        instance.save()
+        return instance
+
+
+class CashierLoginSerializer(serializers.Serializer):
+    store_code = serializers.CharField(max_length=10)
+    pin = serializers.CharField(max_length=6)
+
+    def validate_store_code(self, value):
+        code = value.strip().upper()
+        if not STORE_CODE_RE.match(code):
+            raise serializers.ValidationError("Kode toko tidak valid")
+        return code
+
+    def validate_pin(self, value):
+        if not PIN_RE.match(value):
+            raise serializers.ValidationError("PIN harus 6 digit angka")
+        return value
+
+
+class CashierSessionSerializer(serializers.Serializer):
+    token = serializers.CharField(read_only=True)
+    expires_at = serializers.DateTimeField(read_only=True)
+    cashier = serializers.SerializerMethodField()
+    store = serializers.SerializerMethodField()
+
+    def get_cashier(self, obj):
+        c = obj.cashier
+        return {
+            "id": c.id,
+            "display_name": c.display_name,
+            "last_login_at": c.last_login_at,
+        }
+
+    def get_store(self, obj):
+        s = obj.store
+        return {"id": s.id, "code": s.code, "name": s.name}
 
 
 class GoogleAuthSerializer(serializers.Serializer):

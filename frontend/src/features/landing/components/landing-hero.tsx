@@ -54,13 +54,13 @@ export function LandingHero() {
 
           <div className="mt-6">
             <Link
-              to="/login"
+              to="/cashier"
               className="text-base font-medium text-neutral-800 underline underline-offset-4 hover:text-amber-700"
             >
               Saya kasir, mau masuk →
             </Link>
             <p className="mt-1 text-sm text-neutral-500">
-              Kasir login lewat kode toko & PIN (segera hadir).
+              Kasir login lewat kode toko & PIN.
             </p>
           </div>
 

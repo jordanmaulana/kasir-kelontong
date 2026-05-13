@@ -4,22 +4,9 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from api.v1._tenant import require_tenant as _require_tenant
 from api.v1.serializers import StoreSerializer
-from core.models import Store, Tenant
-
-
-def _tenant_for(user):
-    return Tenant.objects.filter(owner=user).first()
-
-
-def _require_tenant(user):
-    tenant = _tenant_for(user)
-    if tenant is None:
-        return None, Response(
-            {"detail": "Tenant tidak ditemukan"},
-            status=status.HTTP_400_BAD_REQUEST,
-        )
-    return tenant, None
+from core.models import Store
 
 
 class StoresView(APIView):

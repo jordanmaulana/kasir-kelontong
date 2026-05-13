@@ -19,6 +19,14 @@
                class="rounded px-3 py-2 transition {% if current == 'dashboard' %}bg-blue-500/15 text-white border-l-2 border-blue-400 -ml-px pl-2.5{% else %}text-slate-300 hover:bg-white/5{% endif %}">
               Dashboard
             </a>
+            <a href="{% url 'stores' %}"
+               class="rounded px-3 py-2 transition {% if current == 'stores' %}bg-blue-500/15 text-white border-l-2 border-blue-400 -ml-px pl-2.5{% else %}text-slate-300 hover:bg-white/5{% endif %}">
+              Stores
+            </a>
+            <a href="{% url 'cashiers' %}"
+               class="rounded px-3 py-2 transition {% if current == 'cashiers' %}bg-blue-500/15 text-white border-l-2 border-blue-400 -ml-px pl-2.5{% else %}text-slate-300 hover:bg-white/5{% endif %}">
+              Cashiers
+            </a>
             <a href="{% url 'users' %}"
                class="rounded px-3 py-2 transition {% if current == 'users' %}bg-blue-500/15 text-white border-l-2 border-blue-400 -ml-px pl-2.5{% else %}text-slate-300 hover:bg-white/5{% endif %}">
               Users

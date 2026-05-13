@@ -6,6 +6,8 @@ from django.shortcuts import render
 from django.utils.decorators import method_decorator
 from django.views import View
 
+from core.models import Cashier, Store, Tenant
+
 
 class SuperuserRequiredMixin(View):
     @method_decorator(user_passes_test(lambda user: user.is_superuser, login_url="/login/"))
@@ -20,8 +22,33 @@ class AdminLoginView(LoginView):
 
 class DashboardView(SuperuserRequiredMixin, View):
     def get(self, request):
-        ctx = {}
+        ctx = {
+            "total_tenants": Tenant.objects.count(),
+            "total_stores": Store.objects.count(),
+            "total_cashiers": Cashier.objects.count(),
+            "active_cashiers": Cashier.objects.filter(active=True).count(),
+            "total_users": User.objects.count(),
+        }
         return render(request, "dashboard.html", ctx)
+
+
+class StoresView(SuperuserRequiredMixin, View):
+    def get(self, request):
+        qs = Store.objects.select_related("tenant").order_by("-created_on")
+        paginator = Paginator(qs, 25)
+        page = paginator.get_page(request.GET.get("page"))
+        return render(request, "stores.html", {"page": page})
+
+
+class CashiersView(SuperuserRequiredMixin, View):
+    def get(self, request):
+        qs = (
+            Cashier.objects.select_related("store", "store__tenant")
+            .order_by("-created_on")
+        )
+        paginator = Paginator(qs, 25)
+        page = paginator.get_page(request.GET.get("page"))
+        return render(request, "cashiers.html", {"page": page})
 
 
 class UsersView(SuperuserRequiredMixin, View):
