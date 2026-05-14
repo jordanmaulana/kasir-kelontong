@@ -1,6 +1,6 @@
 import { Minus, Plus, Search, Trash2 } from "lucide-react";
 import { useAtom } from "jotai";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "react-toastify";
 
 import { Button } from "@/components/ui/button";
@@ -24,7 +24,7 @@ interface CartLine {
   available_qty: number;
 }
 
-const DENOMINATIONS = [1000, 2000, 5000, 10000, 20000, 50000, 100000];
+const DENOMINATIONS = [500, 1000, 2000, 5000, 10000, 20000, 50000, 100000];
 
 const idr = new Intl.NumberFormat("id-ID");
 
@@ -88,6 +88,13 @@ export function PosPage() {
     setSearch("");
     searchRef.current?.focus();
   };
+
+  useEffect(() => {
+    if (!exactBarcodeMatch) return;
+    const p = exactBarcodeMatch;
+    const id = setTimeout(() => addProduct(p), 0);
+    return () => clearTimeout(id);
+  }, [exactBarcodeMatch]);
 
   const incrementInCart = (productId: string) => {
     const fresh = stockById.get(productId);
