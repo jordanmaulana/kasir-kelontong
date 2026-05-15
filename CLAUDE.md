@@ -49,6 +49,8 @@ Django project root is `core/`. Each domain is its own app, kept thin:
 
 Endpoints opt into cashier auth by decorating with `@authentication_classes([CashierTokenAuthentication])` (e.g. `sales_api.py`, `stock_api.CashierStockView`). Admin endpoints don't list `authentication_classes` and pick up the DRF default (Token).
 
+**Impersonation.** Admin can mint a real `CashierSession` for an owned cashier via `POST /api/v1/stores/<store_id>/cashiers/<cashier_id>/impersonate/`. The returned token works exactly like a normal cashier login but does **not** update `last_login_at` (so audit trails stay clean). Cross-tenant target → 404; inactive cashier → 400.
+
 ### Tenant isolation
 
 Never trust client-supplied tenant scope. In any admin endpoint, derive the tenant via `require_tenant(request.user)` or `require_store(request.user, store_id)` from `api/v1/_tenant.py`. Both return `(obj, err_response)` — return `err` immediately if non-None. Cashier endpoints get the store from `request.auth.store`, not from URL kwargs.
@@ -59,9 +61,11 @@ Never trust client-supplied tenant scope. In any admin endpoint, derive the tena
 
 `sale.services.create_sale` wraps the whole sale in `@transaction.atomic`: snapshots `unit_price` onto `SaleLine`, then emits negative `StockMovement` per line via `record_movement`. Raise/handle three errors from API layer: `SaleValidationError`, `OutOfStockError`, `InsufficientTenderError`.
 
-### Money
+**Bundles & weighted products.** `Product` may carry `bundle_qty/bundle_price/bundle_label` (e.g. "12-pack Rp 50.000"). Sale lines pass `is_bundle=True` to `create_sale` to use bundle pricing; stock delta then becomes `qty * bundle_qty` units. `Product.is_weighted=True` allows decimal `qty` but is mutually exclusive with bundles — `create_sale` rejects weighted+bundle. `SaleLine` snapshots both `is_bundle` and `bundle_qty` for receipt reprints.
 
-All money fields are integers (IDR has no decimals). `subtotal`, `tendered`, `change`, `sell_price`, `line_total` are all `IntegerField`/`PositiveIntegerField`.
+### Money & quantities
+
+Money fields are integers (IDR has no decimals): `subtotal`, `tendered`, `change`, `sell_price`, `line_total`, `bundle_price`. **Quantities are `Decimal(12,2)`** (`SaleLine.qty`, `StockMovement.delta`, `StoreStock.qty`) to support weighted products. Don't pass floats — convert to `Decimal` at the API boundary.
 
 ### Frontend (`frontend/`)
 
