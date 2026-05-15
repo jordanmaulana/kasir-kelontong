@@ -170,7 +170,7 @@ class ProductSerializer(serializers.Serializer):
         if not BARCODE_RE.match(code):
             raise serializers.ValidationError("Barcode 1–64 karakter, huruf/angka/tanda hubung")
         tenant = self.context["tenant"]
-        qs = Product.objects.filter(tenant=tenant, barcode=code)
+        qs = Product.objects.filter(tenant=tenant, barcode=code, archived_at__isnull=True)
         if self.instance is not None:
             qs = qs.exclude(pk=self.instance.pk)
         if qs.exists():
@@ -268,9 +268,9 @@ class ReceivingSerializer(serializers.Serializer):
                 raise serializers.ValidationError(f"Produk {pid} duplikat dalam satu penerimaan")
             seen.add(pid)
         found = set(
-            Product.objects.filter(id__in=product_ids, tenant=store.tenant).values_list(
-                "id", flat=True
-            )
+            Product.objects.filter(
+                id__in=product_ids, tenant=store.tenant, archived_at__isnull=True
+            ).values_list("id", flat=True)
         )
         missing = set(product_ids) - found
         if missing:
@@ -300,7 +300,9 @@ class AdjustmentSerializer(serializers.Serializer):
         if has_delta and attrs["delta"] == 0:
             raise serializers.ValidationError({"delta": "Delta tidak boleh 0"})
         store = self.context["store"]
-        if not Product.objects.filter(id=attrs["product_id"], tenant=store.tenant).exists():
+        if not Product.objects.filter(
+            id=attrs["product_id"], tenant=store.tenant, archived_at__isnull=True
+        ).exists():
             raise serializers.ValidationError({"product_id": "Produk tidak ditemukan"})
         return attrs
 

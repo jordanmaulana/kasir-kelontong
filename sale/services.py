@@ -25,7 +25,9 @@ def create_sale(*, store, cashier, lines, tendered):
 
     products = {
         p.id: p
-        for p in Product.objects.select_for_update().filter(id__in=product_ids, tenant=store.tenant)
+        for p in Product.objects.select_for_update().filter(
+            id__in=product_ids, tenant=store.tenant, archived_at__isnull=True
+        )
     }
     missing = set(product_ids) - set(products.keys())
     if missing:

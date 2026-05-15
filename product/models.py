@@ -9,13 +9,14 @@ class Product(BaseModel):
     barcode = models.CharField(max_length=64, null=True, blank=True)
     name = models.CharField(max_length=200)
     sell_price = models.PositiveIntegerField(default=0)
+    archived_at = models.DateTimeField(null=True, blank=True, db_index=True)
 
     class Meta:
         ordering = ["name"]
         constraints = [
             models.UniqueConstraint(
                 fields=["tenant", "barcode"],
-                condition=Q(barcode__isnull=False),
+                condition=Q(barcode__isnull=False) & Q(archived_at__isnull=True),
                 name="uniq_product_barcode_per_tenant",
             ),
         ]

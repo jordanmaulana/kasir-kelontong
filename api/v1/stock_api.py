@@ -19,7 +19,7 @@ from stock.services import OutOfStockError, record_movement
 
 
 def build_stock_rows(store, q=""):
-    products = Product.objects.filter(tenant=store.tenant)
+    products = Product.objects.filter(tenant=store.tenant, archived_at__isnull=True)
     q = (q or "").strip()
     if q:
         products = products.filter(Q(name__icontains=q) | Q(barcode__icontains=q))
@@ -98,7 +98,9 @@ class StoreReceivingView(APIView):
         products = {
             p.id: p
             for p in Product.objects.filter(
-                id__in=[i["product_id"] for i in items], tenant=store.tenant
+                id__in=[i["product_id"] for i in items],
+                tenant=store.tenant,
+                archived_at__isnull=True,
             )
         }
         movements = []
@@ -129,7 +131,9 @@ class StoreAdjustmentView(APIView):
         serializer = AdjustmentSerializer(data=request.data, context={"store": store})
         serializer.is_valid(raise_exception=True)
         data = serializer.validated_data
-        product = Product.objects.get(id=data["product_id"], tenant=store.tenant)
+        product = Product.objects.get(
+            id=data["product_id"], tenant=store.tenant, archived_at__isnull=True
+        )
         with transaction.atomic():
             if "target_qty" in data:
                 stock = (

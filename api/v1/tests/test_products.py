@@ -190,7 +190,8 @@ class ProductDetailTests(TestCase):
     def test_delete_returns_204(self):
         res = self.client.delete(self.url)
         self.assertEqual(res.status_code, status.HTTP_204_NO_CONTENT)
-        self.assertFalse(Product.objects.filter(id=self.product.id).exists())
+        self.product.refresh_from_db()
+        self.assertIsNotNone(self.product.archived_at)
 
     def test_tenant_isolation_get_404(self):
         _, _, other_token = _make_user("z@b.com")

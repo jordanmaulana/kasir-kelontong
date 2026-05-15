@@ -1,5 +1,6 @@
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
+from django.utils import timezone
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -17,7 +18,7 @@ class ProductsView(APIView):
         tenant, err = _require_tenant(request.user)
         if err:
             return err
-        qs = Product.objects.filter(tenant=tenant)
+        qs = Product.objects.filter(tenant=tenant, archived_at__isnull=True)
         q = request.query_params.get("q", "").strip()
         if q:
             qs = qs.filter(Q(name__icontains=q) | Q(barcode__icontains=q))
@@ -40,7 +41,7 @@ class ProductDetailView(APIView):
         tenant, err = _require_tenant(request.user)
         if err:
             return None, err
-        product = get_object_or_404(Product, id=product_id, tenant=tenant)
+        product = get_object_or_404(Product, id=product_id, tenant=tenant, archived_at__isnull=True)
         return product, None
 
     def get(self, request, product_id):
@@ -67,5 +68,7 @@ class ProductDetailView(APIView):
         product, err = self._get_product(request, product_id)
         if err:
             return err
-        product.delete()
+        product.archived_at = timezone.now()
+        product.actor = request.user
+        product.save(update_fields=["archived_at", "actor", "updated_on"])
         return Response(status=status.HTTP_204_NO_CONTENT)
