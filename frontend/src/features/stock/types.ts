@@ -7,6 +7,9 @@ export interface StockItem {
   sell_price: number;
   qty: number;
   last_movement_at: string | null;
+  bundle_qty: number | null;
+  bundle_price: number | null;
+  bundle_label: string | null;
 }
 
 export interface StockMovement {

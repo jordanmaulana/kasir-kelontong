@@ -106,7 +106,13 @@ export function ProductsPage() {
                     {product.barcode ?? "—"}
                   </TableCell>
                   <TableCell className="font-semibold text-foreground">
-                    {product.name}
+                    <div>{product.name}</div>
+                    {product.bundle_qty != null && product.bundle_price != null && (
+                      <div className="mt-1 text-xs font-medium text-muted-foreground">
+                        {product.bundle_label ?? "Bundel"} · {product.bundle_qty} pcs ·{" "}
+                        <Money value={product.bundle_price} size="sm" muted />
+                      </div>
+                    )}
                   </TableCell>
                   <TableCell className="text-right">
                     <Money value={product.sell_price} size="base" />

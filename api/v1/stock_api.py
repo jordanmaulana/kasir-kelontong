@@ -35,6 +35,9 @@ def build_stock_rows(store, q=""):
                 "sell_price": p.sell_price,
                 "qty": s.qty if s else 0,
                 "last_movement_at": s.last_movement_at if s else None,
+                "bundle_qty": p.bundle_qty,
+                "bundle_price": p.bundle_price,
+                "bundle_label": p.bundle_label,
             }
         )
     return rows

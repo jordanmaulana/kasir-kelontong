@@ -20,8 +20,9 @@ def create_sale(*, store, cashier, lines, tendered):
         raise SaleValidationError("Minimal 1 item")
 
     product_ids = [line["product_id"] for line in lines]
-    if len(set(product_ids)) != len(product_ids):
-        raise SaleValidationError("Produk duplikat dalam satu transaksi")
+    keys = [(line["product_id"], bool(line.get("is_bundle", False))) for line in lines]
+    if len(set(keys)) != len(keys):
+        raise SaleValidationError("Baris duplikat dalam satu transaksi")
 
     products = {
         p.id: p
@@ -38,7 +39,17 @@ def create_sale(*, store, cashier, lines, tendered):
     for line in lines:
         product = products[line["product_id"]]
         qty = line["qty"]
-        unit_price = product.sell_price
+        is_bundle = bool(line.get("is_bundle", False))
+        if is_bundle:
+            if not product.has_bundle:
+                raise SaleValidationError(f"Produk {product.name} tidak memiliki bundel")
+            unit_price = product.bundle_price
+            bundle_qty_snap = product.bundle_qty
+            stock_delta = -(qty * bundle_qty_snap)
+        else:
+            unit_price = product.sell_price
+            bundle_qty_snap = None
+            stock_delta = -qty
         line_total = qty * unit_price
         subtotal += line_total
         resolved_lines.append(
@@ -47,6 +58,9 @@ def create_sale(*, store, cashier, lines, tendered):
                 "qty": qty,
                 "unit_price": unit_price,
                 "line_total": line_total,
+                "is_bundle": is_bundle,
+                "bundle_qty": bundle_qty_snap,
+                "stock_delta": stock_delta,
             }
         )
 
@@ -70,11 +84,13 @@ def create_sale(*, store, cashier, lines, tendered):
             qty=resolved["qty"],
             unit_price=resolved["unit_price"],
             line_total=resolved["line_total"],
+            is_bundle=resolved["is_bundle"],
+            bundle_qty=resolved["bundle_qty"],
         )
         record_movement(
             store=store,
             product=resolved["product"],
-            delta=-resolved["qty"],
+            delta=resolved["stock_delta"],
             reason=StockReason.SALE,
             actor=None,
             ref_type="sale",

@@ -22,6 +22,19 @@ interface CartLine {
   qty: number;
   unit_price: number;
   available_qty: number;
+  is_bundle: boolean;
+  single_price: number;
+  bundle_qty: number | null;
+  bundle_price: number | null;
+  bundle_label: string | null;
+}
+
+function lineKey(l: Pick<CartLine, "product_id" | "is_bundle">): string {
+  return `${l.product_id}:${l.is_bundle ? "B" : "S"}`;
+}
+
+function stockNeeded(line: CartLine): number {
+  return line.is_bundle && line.bundle_qty ? line.qty * line.bundle_qty : line.qty;
 }
 
 const DENOMINATIONS = [500, 1000, 2000, 5000, 10000, 20000, 50000, 100000];
@@ -46,29 +59,39 @@ export function PosPage() {
     return map;
   }, [stock]);
 
+  const cartKeys = useMemo(() => new Set(lines.map(lineKey)), [lines]);
+
   const candidates = useMemo(() => {
     if (!search.trim()) return [];
-    const inCart = new Set(lines.map((l) => l.product_id));
-    return (stock ?? []).filter((s) => !inCart.has(s.product_id)).slice(0, 6);
-  }, [stock, search, lines]);
+    return (stock ?? [])
+      .filter((s) => {
+        const hasBundle = s.bundle_qty != null && s.bundle_price != null;
+        const singleIn = cartKeys.has(`${s.product_id}:S`);
+        const bundleIn = cartKeys.has(`${s.product_id}:B`);
+        if (hasBundle) return !(singleIn && bundleIn);
+        return !singleIn;
+      })
+      .slice(0, 6);
+  }, [stock, search, cartKeys]);
 
   const exactBarcodeMatch = useMemo(() => {
     const term = search.trim();
     if (!term) return null;
-    const inCart = new Set(lines.map((l) => l.product_id));
     return (
       (stock ?? []).find(
-        (s) => s.barcode && s.barcode === term && !inCart.has(s.product_id),
+        (s) => s.barcode && s.barcode === term && !cartKeys.has(`${s.product_id}:S`),
       ) ?? null
     );
-  }, [stock, search, lines]);
+  }, [stock, search, cartKeys]);
 
-  const addProduct = (p: CashierStockItem) => {
+  const addProduct = (p: CashierStockItem, asBundle = false) => {
+    if (asBundle && (p.bundle_qty == null || p.bundle_price == null)) return;
     setLines((prev) => {
-      const found = prev.find((l) => l.product_id === p.product_id);
+      const targetKey = `${p.product_id}:${asBundle ? "B" : "S"}`;
+      const found = prev.find((l) => lineKey(l) === targetKey);
       if (found) {
         return prev.map((l) =>
-          l.product_id === p.product_id
+          lineKey(l) === targetKey
             ? { ...l, qty: l.qty + 1, available_qty: p.qty }
             : l,
         );
@@ -80,8 +103,13 @@ export function PosPage() {
           product_name: p.name,
           barcode: p.barcode,
           qty: 1,
-          unit_price: p.sell_price,
+          unit_price: asBundle ? (p.bundle_price ?? 0) : p.sell_price,
           available_qty: p.qty,
+          is_bundle: asBundle,
+          single_price: p.sell_price,
+          bundle_qty: p.bundle_qty,
+          bundle_price: p.bundle_price,
+          bundle_label: p.bundle_label,
         },
       ];
     });
@@ -92,68 +120,116 @@ export function PosPage() {
   useEffect(() => {
     if (!exactBarcodeMatch) return;
     const p = exactBarcodeMatch;
-    const id = setTimeout(() => addProduct(p), 0);
+    const id = setTimeout(() => addProduct(p, false), 0);
     return () => clearTimeout(id);
   }, [exactBarcodeMatch]);
 
-  const incrementInCart = (productId: string) => {
-    const fresh = stockById.get(productId);
+  const incrementInCart = (key: string) => {
     setLines((prev) =>
-      prev.map((l) =>
-        l.product_id === productId
-          ? { ...l, qty: l.qty + 1, available_qty: fresh?.qty ?? l.available_qty }
+      prev.map((l) => {
+        if (lineKey(l) !== key) return l;
+        const fresh = stockById.get(l.product_id);
+        return { ...l, qty: l.qty + 1, available_qty: fresh?.qty ?? l.available_qty };
+      }),
+    );
+  };
+
+  const updateQty = (key: string, qty: number) => {
+    setLines((prev) =>
+      prev.map((l) => (lineKey(l) === key ? { ...l, qty: Math.max(1, qty) } : l)),
+    );
+  };
+
+  const decrementQty = (key: string) => {
+    setLines((prev) =>
+      prev.map((l) => (lineKey(l) === key ? { ...l, qty: Math.max(1, l.qty - 1) } : l)),
+    );
+  };
+
+  const removeLine = (key: string) => {
+    setLines((prev) => prev.filter((l) => lineKey(l) !== key));
+  };
+
+  const toggleBundle = (key: string) => {
+    setLines((prev) => {
+      const target = prev.find((l) => lineKey(l) === key);
+      if (!target) return prev;
+      if (target.bundle_qty == null || target.bundle_price == null) return prev;
+      const nextIsBundle = !target.is_bundle;
+      const otherKey = `${target.product_id}:${nextIsBundle ? "B" : "S"}`;
+      const collision = prev.some((l) => lineKey(l) === otherKey);
+      if (collision) {
+        toast.error(
+          nextIsBundle
+            ? `Baris ${target.bundle_label ?? "bundel"} sudah ada — ubah qty di sana`
+            : "Baris satuan sudah ada — ubah qty di sana",
+        );
+        return prev;
+      }
+      const nextUnitPrice = nextIsBundle ? target.bundle_price : target.single_price;
+      const liveStock = stockById.get(target.product_id)?.qty ?? target.available_qty;
+      const needed = nextIsBundle ? target.qty * target.bundle_qty : target.qty;
+      if (needed > liveStock) {
+        toast.error(
+          nextIsBundle
+            ? `Stok tidak cukup untuk ${target.bundle_label ?? "bundel"}`
+            : "Stok tidak cukup",
+        );
+        return prev;
+      }
+      return prev.map((l) =>
+        lineKey(l) === key
+          ? { ...l, is_bundle: nextIsBundle, unit_price: nextUnitPrice }
           : l,
-      ),
-    );
-  };
-
-  const updateQty = (productId: string, qty: number) => {
-    setLines((prev) =>
-      prev.map((l) =>
-        l.product_id === productId ? { ...l, qty: Math.max(1, qty) } : l,
-      ),
-    );
-  };
-
-  const decrementQty = (productId: string) => {
-    setLines((prev) =>
-      prev.map((l) =>
-        l.product_id === productId ? { ...l, qty: Math.max(1, l.qty - 1) } : l,
-      ),
-    );
-  };
-
-  const removeLine = (productId: string) => {
-    setLines((prev) => prev.filter((l) => l.product_id !== productId));
+      );
+    });
   };
 
   const onSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key !== "Enter") return;
     e.preventDefault();
     if (exactBarcodeMatch) {
-      addProduct(exactBarcodeMatch);
+      addProduct(exactBarcodeMatch, false);
       return;
     }
     const term = search.trim();
     if (term) {
-      const existing = lines.find((l) => l.barcode === term);
+      const existing = lines.find((l) => !l.is_bundle && l.barcode === term);
       if (existing) {
-        incrementInCart(existing.product_id);
+        incrementInCart(lineKey(existing));
         setSearch("");
         return;
       }
     }
     if (candidates.length === 1) {
-      addProduct(candidates[0]);
+      addProduct(candidates[0], false);
     }
   };
 
   const subtotal = lines.reduce((s, l) => s + l.qty * l.unit_price, 0);
   const change = Math.max(0, tendered - subtotal);
 
-  const hasOverstockedLine = lines.some(
-    (l) => l.qty > (stockById.get(l.product_id)?.qty ?? l.available_qty),
-  );
+  const neededByProduct = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const l of lines) {
+      map.set(l.product_id, (map.get(l.product_id) ?? 0) + stockNeeded(l));
+    }
+    return map;
+  }, [lines]);
+
+  const overProducts = useMemo(() => {
+    const set = new Set<string>();
+    for (const [pid, need] of neededByProduct) {
+      const stockQty =
+        stockById.get(pid)?.qty ??
+        lines.find((l) => l.product_id === pid)?.available_qty ??
+        0;
+      if (need > stockQty) set.add(pid);
+    }
+    return set;
+  }, [neededByProduct, stockById, lines]);
+
+  const hasOverstockedLine = overProducts.size > 0;
 
   const canSubmit =
     lines.length > 0 &&
@@ -171,7 +247,11 @@ export function PosPage() {
   const onSubmit = () => {
     create.mutate(
       {
-        lines: lines.map((l) => ({ product_id: l.product_id, qty: l.qty })),
+        lines: lines.map((l) => ({
+          product_id: l.product_id,
+          qty: l.qty,
+          is_bundle: l.is_bundle,
+        })),
         tendered,
       },
       {
@@ -204,28 +284,53 @@ export function PosPage() {
             />
             {candidates.length > 0 && (
               <div className="absolute z-10 mt-2 w-full overflow-hidden rounded-lg border-2 border-border bg-card shadow-xl">
-                {candidates.map((p) => (
-                  <button
-                    key={p.product_id}
-                    type="button"
-                    className="flex w-full items-center justify-between gap-4 px-5 py-4 text-left hover:bg-muted focus-visible:bg-muted focus:outline-none"
-                    onClick={() => addProduct(p)}
-                  >
-                    <span className="flex min-w-0 flex-col gap-1">
-                      <span className="truncate text-lg font-semibold text-foreground">
-                        {p.name}
-                      </span>
-                      <span className="text-sm text-muted-foreground">
-                        <span className="font-mono">{p.barcode ?? "—"}</span>
-                        <span className="mx-2">·</span>
-                        <Money value={p.sell_price} size="sm" />
-                        <span className="mx-2">·</span>
-                        <span>stok {p.qty}</span>
-                      </span>
-                    </span>
-                    <Plus className="size-6 shrink-0 text-accent" strokeWidth={2.5} />
-                  </button>
-                ))}
+                {candidates.map((p) => {
+                  const hasBundle = p.bundle_qty != null && p.bundle_price != null;
+                  const singleIn = cartKeys.has(`${p.product_id}:S`);
+                  const bundleIn = cartKeys.has(`${p.product_id}:B`);
+                  return (
+                    <div
+                      key={p.product_id}
+                      className="flex w-full items-center justify-between gap-4 px-5 py-4"
+                    >
+                      <div className="flex min-w-0 flex-col gap-1">
+                        <span className="truncate text-lg font-semibold text-foreground">
+                          {p.name}
+                        </span>
+                        <span className="text-sm text-muted-foreground">
+                          <span className="font-mono">{p.barcode ?? "—"}</span>
+                          <span className="mx-2">·</span>
+                          <span>stok {p.qty}</span>
+                        </span>
+                      </div>
+                      <div className="flex shrink-0 flex-col gap-2 sm:flex-row">
+                        <Button
+                          type="button"
+                          size="default"
+                          variant="outline"
+                          disabled={singleIn}
+                          onClick={() => addProduct(p, false)}
+                        >
+                          <Plus className="mr-1 size-4" />
+                          Satuan {idr.format(p.sell_price)}
+                        </Button>
+                        {hasBundle && (
+                          <Button
+                            type="button"
+                            size="default"
+                            variant="accent"
+                            disabled={bundleIn}
+                            onClick={() => addProduct(p, true)}
+                          >
+                            <Plus className="mr-1 size-4" />
+                            {p.bundle_label ?? "Bundel"} {p.bundle_qty}pcs{" "}
+                            {idr.format(p.bundle_price ?? 0)}
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>
@@ -240,12 +345,21 @@ export function PosPage() {
           ) : (
             <ul className="space-y-3">
               {lines.map((line) => {
+                const key = lineKey(line);
                 const liveStock =
                   stockById.get(line.product_id)?.qty ?? line.available_qty;
-                const overstocked = line.qty > liveStock;
+                const overstocked = overProducts.has(line.product_id);
+                const hasBundleConfig =
+                  line.bundle_qty != null && line.bundle_price != null;
+                const otherVariantInCart = cartKeys.has(
+                  `${line.product_id}:${line.is_bundle ? "S" : "B"}`,
+                );
+                const priceLabel = line.is_bundle
+                  ? `/${line.bundle_label ?? "bundel"}`
+                  : "/pcs";
                 return (
                   <li
-                    key={line.product_id}
+                    key={key}
                     className={cn(
                       "rounded-lg border-2 bg-card p-5 shadow-sm transition-colors",
                       overstocked
@@ -257,11 +371,16 @@ export function PosPage() {
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-lg font-bold text-foreground">
                           {line.product_name}
+                          {line.is_bundle && line.bundle_label && (
+                            <span className="ml-2 rounded bg-accent/15 px-2 py-0.5 text-sm font-semibold text-accent">
+                              {line.bundle_label} × {line.bundle_qty}
+                            </span>
+                          )}
                         </p>
                         <p className="mt-1 text-sm text-muted-foreground">
                           <span className="font-mono">{line.barcode ?? "—"}</span>
                           <span className="mx-2">·</span>
-                          <Money value={line.unit_price} size="sm" muted /> /pcs
+                          <Money value={line.unit_price} size="sm" muted /> {priceLabel}
                           <span className="mx-2">·</span>
                           stok {liveStock}
                           {overstocked && (
@@ -270,13 +389,24 @@ export function PosPage() {
                             </span>
                           )}
                         </p>
+                        {hasBundleConfig && !otherVariantInCart && (
+                          <button
+                            type="button"
+                            onClick={() => toggleBundle(key)}
+                            className="mt-2 inline-flex items-center gap-1 rounded border border-accent/40 bg-accent/5 px-2.5 py-1 text-xs font-semibold text-accent hover:bg-accent/10"
+                          >
+                            {line.is_bundle
+                              ? "Ganti ke satuan"
+                              : `Ganti ke ${line.bundle_label ?? "bundel"} (${line.bundle_qty} pcs · ${idr.format(line.bundle_price ?? 0)})`}
+                          </button>
+                        )}
                       </div>
                       <div className="flex items-center gap-4">
                         <div className="flex items-center gap-2">
                           <Button
                             variant="outline"
                             size="icon"
-                            onClick={() => decrementQty(line.product_id)}
+                            onClick={() => decrementQty(key)}
                             aria-label="Kurangi qty"
                           >
                             <Minus className="size-5" />
@@ -286,15 +416,13 @@ export function PosPage() {
                             inputMode="numeric"
                             min={1}
                             value={line.qty}
-                            onChange={(e) =>
-                              updateQty(line.product_id, Number(e.target.value))
-                            }
+                            onChange={(e) => updateQty(key, Number(e.target.value))}
                             className="h-12 w-20 text-center font-mono text-xl"
                           />
                           <Button
                             variant="outline"
                             size="icon"
-                            onClick={() => incrementInCart(line.product_id)}
+                            onClick={() => incrementInCart(key)}
                             aria-label="Tambah qty"
                           >
                             <Plus className="size-5" />
@@ -307,7 +435,7 @@ export function PosPage() {
                           size="icon"
                           variant="ghost"
                           aria-label={`Hapus ${line.product_name}`}
-                          onClick={() => removeLine(line.product_id)}
+                          onClick={() => removeLine(key)}
                           className="text-destructive hover:bg-destructive/10"
                         >
                           <Trash2 className="size-5" />
@@ -331,7 +459,7 @@ export function PosPage() {
                 <Money value={subtotal} size="3xl" />
               </div>
               <p className="mt-2 text-sm text-muted-foreground">
-                {lines.length} item · {lines.reduce((s, l) => s + l.qty, 0)} unit
+                {lines.length} item · {lines.reduce((s, l) => s + stockNeeded(l), 0)} pcs
               </p>
             </div>
 

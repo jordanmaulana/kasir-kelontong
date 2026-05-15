@@ -9,6 +9,9 @@ class Product(BaseModel):
     barcode = models.CharField(max_length=64, null=True, blank=True)
     name = models.CharField(max_length=200)
     sell_price = models.PositiveIntegerField(default=0)
+    bundle_qty = models.PositiveIntegerField(null=True, blank=True)
+    bundle_price = models.PositiveIntegerField(null=True, blank=True)
+    bundle_label = models.CharField(max_length=32, null=True, blank=True)
     archived_at = models.DateTimeField(null=True, blank=True, db_index=True)
 
     class Meta:
@@ -20,6 +23,10 @@ class Product(BaseModel):
                 name="uniq_product_barcode_per_tenant",
             ),
         ]
+
+    @property
+    def has_bundle(self) -> bool:
+        return self.bundle_qty is not None and self.bundle_price is not None
 
     def __str__(self):
         return self.name

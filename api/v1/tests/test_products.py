@@ -144,6 +144,51 @@ class ProductsListCreateTests(TestCase):
         res = APIClient().get(self.url)
         self.assertEqual(res.status_code, status.HTTP_401_UNAUTHORIZED)
 
+    def test_create_with_bundle_fields(self):
+        res = self.client.post(
+            self.url,
+            {
+                "name": "Sachet Kopi",
+                "barcode": "999",
+                "sell_price": 1500,
+                "bundle_qty": 10,
+                "bundle_price": 13000,
+                "bundle_label": "Renteng",
+            },
+            format="json",
+        )
+        self.assertEqual(res.status_code, status.HTTP_201_CREATED, res.data)
+        self.assertEqual(res.data["bundle_qty"], 10)
+        self.assertEqual(res.data["bundle_price"], 13000)
+        self.assertEqual(res.data["bundle_label"], "Renteng")
+
+    def test_create_partial_bundle_400(self):
+        res = self.client.post(
+            self.url,
+            {
+                "name": "Sachet",
+                "sell_price": 1500,
+                "bundle_qty": 10,
+            },
+            format="json",
+        )
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_create_bundle_qty_min_2(self):
+        res = self.client.post(
+            self.url,
+            {
+                "name": "Sachet",
+                "sell_price": 1500,
+                "bundle_qty": 1,
+                "bundle_price": 1500,
+                "bundle_label": "Pak",
+            },
+            format="json",
+        )
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("bundle_qty", res.data)
+
 
 class ProductDetailTests(TestCase):
     def setUp(self):
@@ -210,6 +255,38 @@ class ProductDetailTests(TestCase):
         res = _client_for(other_token).delete(self.url)
         self.assertEqual(res.status_code, status.HTTP_404_NOT_FOUND)
         self.assertTrue(Product.objects.filter(id=self.product.id).exists())
+
+    def test_patch_enable_bundle(self):
+        res = self.client.patch(
+            self.url,
+            {"bundle_qty": 20, "bundle_price": 18000, "bundle_label": "Renteng"},
+            format="json",
+        )
+        self.assertEqual(res.status_code, status.HTTP_200_OK, res.data)
+        self.product.refresh_from_db()
+        self.assertEqual(self.product.bundle_qty, 20)
+        self.assertEqual(self.product.bundle_price, 18000)
+        self.assertEqual(self.product.bundle_label, "Renteng")
+
+    def test_patch_partial_bundle_400(self):
+        res = self.client.patch(self.url, {"bundle_qty": 20}, format="json")
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_patch_clear_bundle(self):
+        self.product.bundle_qty = 20
+        self.product.bundle_price = 18000
+        self.product.bundle_label = "Renteng"
+        self.product.save()
+        res = self.client.patch(
+            self.url,
+            {"bundle_qty": None, "bundle_price": None, "bundle_label": None},
+            format="json",
+        )
+        self.assertEqual(res.status_code, status.HTTP_200_OK, res.data)
+        self.product.refresh_from_db()
+        self.assertIsNone(self.product.bundle_qty)
+        self.assertIsNone(self.product.bundle_price)
+        self.assertIsNone(self.product.bundle_label)
 
     def test_unknown_id_404(self):
         res = self.client.get(reverse("api-v1-product-detail", args=["000000000000000000000000"]))

@@ -232,6 +232,200 @@ class SaleCreateTests(TestCase):
         self.assertEqual(res.status_code, status.HTTP_401_UNAUTHORIZED)
 
 
+class SaleBundleTests(TestCase):
+    def setUp(self):
+        self.user, self.tenant, _ = _make_user("a@b.com")
+        self.store = Store.objects.create(tenant=self.tenant, name="Toko A", code="JKT01")
+        self.bundled = Product.objects.create(
+            tenant=self.tenant,
+            name="Sachet Kopi",
+            barcode="111",
+            sell_price=1500,
+            bundle_qty=10,
+            bundle_price=13000,
+            bundle_label="Renteng",
+        )
+        self.plain = Product.objects.create(
+            tenant=self.tenant, name="Gula", barcode="222", sell_price=15000
+        )
+        self.cashier = _make_cashier(self.store)
+        self.session = CashierSession.issue(self.cashier)
+        self.client_ = _cashier_client(self.session.token)
+        self.url = reverse("api-v1-cashier-sales-create")
+        record_movement(
+            store=self.store,
+            product=self.bundled,
+            delta=50,
+            reason=StockReason.RECEIVING,
+            actor=self.user,
+        )
+        record_movement(
+            store=self.store,
+            product=self.plain,
+            delta=5,
+            reason=StockReason.RECEIVING,
+            actor=self.user,
+        )
+
+    def test_bundle_sale_decrements_units_and_snapshots(self):
+        res = self.client_.post(
+            self.url,
+            {
+                "lines": [{"product_id": self.bundled.id, "qty": 2, "is_bundle": True}],
+                "tendered": 30000,
+            },
+            format="json",
+        )
+        self.assertEqual(res.status_code, status.HTTP_201_CREATED, res.data)
+        self.assertEqual(res.data["subtotal"], 2 * 13000)
+        line = res.data["lines"][0]
+        self.assertTrue(line["is_bundle"])
+        self.assertEqual(line["bundle_qty"], 10)
+        self.assertEqual(line["bundle_label"], "Renteng")
+        self.assertEqual(line["unit_price"], 13000)
+        self.assertEqual(
+            StoreStock.objects.get(store=self.store, product=self.bundled).qty,
+            50 - 2 * 10,
+        )
+        movement = StockMovement.objects.filter(
+            store=self.store, product=self.bundled, reason=StockReason.SALE
+        ).first()
+        self.assertEqual(movement.delta, -20)
+
+    def test_bundle_on_product_without_bundle_400(self):
+        res = self.client_.post(
+            self.url,
+            {
+                "lines": [{"product_id": self.plain.id, "qty": 1, "is_bundle": True}],
+                "tendered": 100000,
+            },
+            format="json",
+        )
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("tidak memiliki bundel", res.data["detail"])
+        self.assertEqual(Sale.objects.count(), 0)
+
+    def test_bundle_qty_exceeds_stock_blocks(self):
+        res = self.client_.post(
+            self.url,
+            {
+                "lines": [{"product_id": self.bundled.id, "qty": 6, "is_bundle": True}],
+                "tendered": 1_000_000,
+            },
+            format="json",
+        )
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("stok tidak cukup", res.data["detail"])
+        self.assertEqual(Sale.objects.count(), 0)
+        self.assertEqual(StoreStock.objects.get(store=self.store, product=self.bundled).qty, 50)
+
+    def test_same_product_bundle_and_singular(self):
+        res = self.client_.post(
+            self.url,
+            {
+                "lines": [
+                    {"product_id": self.bundled.id, "qty": 3},
+                    {"product_id": self.bundled.id, "qty": 1, "is_bundle": True},
+                ],
+                "tendered": 100000,
+            },
+            format="json",
+        )
+        self.assertEqual(res.status_code, status.HTTP_201_CREATED, res.data)
+        self.assertEqual(res.data["subtotal"], 3 * 1500 + 1 * 13000)
+        self.assertEqual(len(res.data["lines"]), 2)
+        self.assertEqual(
+            StoreStock.objects.get(store=self.store, product=self.bundled).qty,
+            50 - 3 - 10,
+        )
+        movements = StockMovement.objects.filter(
+            store=self.store, product=self.bundled, reason=StockReason.SALE
+        )
+        self.assertEqual(movements.count(), 2)
+        deltas = sorted(m.delta for m in movements)
+        self.assertEqual(deltas, [-10, -3])
+
+    def test_same_product_two_singular_rows_400(self):
+        res = self.client_.post(
+            self.url,
+            {
+                "lines": [
+                    {"product_id": self.bundled.id, "qty": 1},
+                    {"product_id": self.bundled.id, "qty": 2},
+                ],
+                "tendered": 100000,
+            },
+            format="json",
+        )
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(Sale.objects.count(), 0)
+
+    def test_same_product_two_bundle_rows_400(self):
+        res = self.client_.post(
+            self.url,
+            {
+                "lines": [
+                    {"product_id": self.bundled.id, "qty": 1, "is_bundle": True},
+                    {"product_id": self.bundled.id, "qty": 1, "is_bundle": True},
+                ],
+                "tendered": 100000,
+            },
+            format="json",
+        )
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(Sale.objects.count(), 0)
+
+    def test_same_product_bundle_plus_singular_oversells(self):
+        tiny = Product.objects.create(
+            tenant=self.tenant,
+            name="Mini",
+            barcode="333",
+            sell_price=1000,
+            bundle_qty=10,
+            bundle_price=9000,
+            bundle_label="Pak",
+        )
+        record_movement(
+            store=self.store,
+            product=tiny,
+            delta=10,
+            reason=StockReason.RECEIVING,
+            actor=self.user,
+        )
+        res = self.client_.post(
+            self.url,
+            {
+                "lines": [
+                    {"product_id": tiny.id, "qty": 1, "is_bundle": True},
+                    {"product_id": tiny.id, "qty": 1},
+                ],
+                "tendered": 100000,
+            },
+            format="json",
+        )
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("stok tidak cukup", res.data["detail"])
+        self.assertEqual(Sale.objects.count(), 0)
+        self.assertEqual(StoreStock.objects.get(store=self.store, product=tiny).qty, 10)
+
+    def test_mixed_bundle_and_single_lines(self):
+        res = self.client_.post(
+            self.url,
+            {
+                "lines": [
+                    {"product_id": self.bundled.id, "qty": 1, "is_bundle": True},
+                    {"product_id": self.plain.id, "qty": 2},
+                ],
+                "tendered": 100000,
+            },
+            format="json",
+        )
+        self.assertEqual(res.status_code, status.HTTP_201_CREATED, res.data)
+        self.assertEqual(res.data["subtotal"], 13000 + 2 * 15000)
+        self.assertEqual(StoreStock.objects.get(store=self.store, product=self.bundled).qty, 40)
+        self.assertEqual(StoreStock.objects.get(store=self.store, product=self.plain).qty, 3)
+
+
 class SalesTodayListTests(TestCase):
     def setUp(self):
         self.user, self.tenant, _ = _make_user("a@b.com")

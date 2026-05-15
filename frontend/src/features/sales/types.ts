@@ -1,6 +1,7 @@
 export interface SaleLineInput {
   product_id: string;
   qty: number;
+  is_bundle?: boolean;
 }
 
 export interface CreateSaleInput {
@@ -16,6 +17,9 @@ export interface SaleLine {
   qty: number;
   unit_price: number;
   line_total: number;
+  is_bundle: boolean;
+  bundle_qty: number | null;
+  bundle_label: string | null;
 }
 
 export interface Sale {
@@ -46,4 +50,7 @@ export interface CashierStockItem {
   sell_price: number;
   qty: number;
   last_movement_at: string | null;
+  bundle_qty: number | null;
+  bundle_price: number | null;
+  bundle_label: string | null;
 }

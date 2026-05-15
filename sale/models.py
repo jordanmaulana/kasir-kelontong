@@ -24,6 +24,8 @@ class SaleLine(BaseModel):
     qty = models.PositiveIntegerField()
     unit_price = models.IntegerField()
     line_total = models.IntegerField()
+    is_bundle = models.BooleanField(default=False)
+    bundle_qty = models.PositiveIntegerField(null=True, blank=True)
 
     class Meta:
         indexes = [

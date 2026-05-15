@@ -152,6 +152,11 @@ class ProductSerializer(serializers.Serializer):
     )
     name = serializers.CharField(max_length=200)
     sell_price = serializers.IntegerField(min_value=0)
+    bundle_qty = serializers.IntegerField(required=False, allow_null=True, min_value=2)
+    bundle_price = serializers.IntegerField(required=False, allow_null=True, min_value=0)
+    bundle_label = serializers.CharField(
+        required=False, allow_null=True, allow_blank=True, max_length=32
+    )
     created_on = serializers.DateTimeField(read_only=True)
     updated_on = serializers.DateTimeField(read_only=True)
 
@@ -176,6 +181,30 @@ class ProductSerializer(serializers.Serializer):
         if qs.exists():
             raise serializers.ValidationError("Barcode sudah dipakai produk lain")
         return code
+
+    def validate_bundle_label(self, value):
+        if value is None:
+            return None
+        label = value.strip()
+        return label or None
+
+    def validate(self, attrs):
+        bundle_keys = ("bundle_qty", "bundle_price", "bundle_label")
+        is_partial = bool(getattr(self, "partial", False))
+        if is_partial and not any(k in attrs for k in bundle_keys):
+            return attrs
+        current = {
+            "bundle_qty": getattr(self.instance, "bundle_qty", None) if self.instance else None,
+            "bundle_price": getattr(self.instance, "bundle_price", None) if self.instance else None,
+            "bundle_label": getattr(self.instance, "bundle_label", None) if self.instance else None,
+        }
+        merged = {k: attrs.get(k, current[k]) for k in bundle_keys}
+        provided = [k for k, v in merged.items() if v not in (None, "")]
+        if 0 < len(provided) < 3:
+            raise serializers.ValidationError(
+                {"bundle": "Bundel harus diisi lengkap: jumlah, harga, dan label"}
+            )
+        return attrs
 
     def create(self, validated_data):
         return Product.objects.create(**validated_data)
@@ -229,6 +258,9 @@ class StockListItemSerializer(serializers.Serializer):
     sell_price = serializers.IntegerField()
     qty = serializers.IntegerField()
     last_movement_at = serializers.DateTimeField(allow_null=True)
+    bundle_qty = serializers.IntegerField(allow_null=True)
+    bundle_price = serializers.IntegerField(allow_null=True)
+    bundle_label = serializers.CharField(allow_null=True)
 
 
 class StockMovementSerializer(serializers.Serializer):
@@ -310,6 +342,7 @@ class AdjustmentSerializer(serializers.Serializer):
 class SaleLineInputSerializer(serializers.Serializer):
     product_id = serializers.CharField()
     qty = serializers.IntegerField(min_value=1)
+    is_bundle = serializers.BooleanField(required=False, default=False)
 
 
 class SaleCreateSerializer(serializers.Serializer):
@@ -321,10 +354,10 @@ class SaleCreateSerializer(serializers.Serializer):
             raise serializers.ValidationError("Minimal 1 item")
         seen = set()
         for line in value:
-            pid = line["product_id"]
-            if pid in seen:
-                raise serializers.ValidationError(f"Produk {pid} duplikat dalam satu transaksi")
-            seen.add(pid)
+            key = (line["product_id"], bool(line.get("is_bundle", False)))
+            if key in seen:
+                raise serializers.ValidationError("Baris duplikat dalam satu transaksi")
+            seen.add(key)
         return value
 
 
@@ -336,6 +369,11 @@ class SaleLineSerializer(serializers.Serializer):
     qty = serializers.IntegerField(read_only=True)
     unit_price = serializers.IntegerField(read_only=True)
     line_total = serializers.IntegerField(read_only=True)
+    is_bundle = serializers.BooleanField(read_only=True)
+    bundle_qty = serializers.IntegerField(read_only=True, allow_null=True)
+    bundle_label = serializers.CharField(
+        source="product.bundle_label", read_only=True, allow_null=True
+    )
 
 
 class SaleDetailSerializer(serializers.Serializer):
