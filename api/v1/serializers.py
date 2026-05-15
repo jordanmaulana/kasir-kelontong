@@ -160,6 +160,17 @@ class ProductSerializer(serializers.Serializer):
     )
     is_weighted = serializers.BooleanField(required=False, default=False)
     unit_label = serializers.CharField(required=False, max_length=8, default="pcs")
+    initial_store_id = serializers.CharField(
+        write_only=True, required=False, allow_null=True, allow_blank=True
+    )
+    initial_qty = serializers.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        write_only=True,
+        required=False,
+        allow_null=True,
+        min_value=Decimal("0.01"),
+    )
     created_on = serializers.DateTimeField(read_only=True)
     updated_on = serializers.DateTimeField(read_only=True)
 
@@ -196,6 +207,39 @@ class ProductSerializer(serializers.Serializer):
         return label or "pcs"
 
     def validate(self, attrs):
+        initial_keys = ("initial_store_id", "initial_qty")
+        if self.instance is not None:
+            for key in initial_keys:
+                attrs.pop(key, None)
+        else:
+            store_id = attrs.get("initial_store_id")
+            qty = attrs.get("initial_qty")
+            store_provided = bool(store_id and str(store_id).strip())
+            qty_provided = qty is not None
+            if store_provided != qty_provided:
+                missing = "initial_qty" if store_provided else "initial_store_id"
+                raise serializers.ValidationError(
+                    {missing: "Isi toko dan jumlah stok awal keduanya, atau kosongkan"}
+                )
+            if store_provided:
+                tenant = self.context["tenant"]
+                store = Store.objects.filter(
+                    id=str(store_id).strip(),
+                    tenant=tenant,
+                ).first()
+                if store is None:
+                    raise serializers.ValidationError({"initial_store_id": "Toko tidak ditemukan"})
+                is_weighted = attrs.get("is_weighted", False)
+                if not is_weighted and qty != qty.to_integral_value():
+                    raise serializers.ValidationError(
+                        {"initial_qty": "Produk satuan hanya bisa diterima dalam jumlah utuh"}
+                    )
+                attrs["_initial_store"] = store
+                attrs["initial_store_id"] = store.id
+            else:
+                attrs.pop("initial_store_id", None)
+                attrs.pop("initial_qty", None)
+
         bundle_keys = ("bundle_qty", "bundle_price", "bundle_label")
         is_partial = bool(getattr(self, "partial", False))
         current = {
@@ -220,9 +264,15 @@ class ProductSerializer(serializers.Serializer):
         return attrs
 
     def create(self, validated_data):
+        validated_data.pop("_initial_store", None)
+        validated_data.pop("initial_store_id", None)
+        validated_data.pop("initial_qty", None)
         return Product.objects.create(**validated_data)
 
     def update(self, instance, validated_data):
+        validated_data.pop("_initial_store", None)
+        validated_data.pop("initial_store_id", None)
+        validated_data.pop("initial_qty", None)
         for key, value in validated_data.items():
             setattr(instance, key, value)
         instance.save()

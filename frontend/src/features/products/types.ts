@@ -21,4 +21,6 @@ export interface ProductInput {
   bundle_label?: string | null;
   is_weighted?: boolean;
   unit_label?: string;
+  initial_store_id?: string;
+  initial_qty?: number;
 }

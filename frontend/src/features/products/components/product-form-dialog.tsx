@@ -20,6 +20,7 @@ import {
   useUpdateProduct,
 } from "@/features/products/hooks";
 import type { Product } from "@/features/products/types";
+import { useStores } from "@/features/stores/hooks";
 import { ApiError } from "@/lib/api";
 
 const schema = z
@@ -40,6 +41,8 @@ const schema = z
     bundle_label: z.string().max(32).optional(),
     bundle_qty: z.number().int().optional(),
     bundle_price: z.number().int().optional(),
+    initial_store_id: z.string().optional(),
+    initial_qty: z.number().positive("Jumlah harus lebih dari 0").optional(),
   })
   .superRefine((data, ctx) => {
     if (data.is_weighted && data.has_bundle) {
@@ -54,6 +57,34 @@ const schema = z
         code: "custom",
         path: ["unit_label"],
         message: "Isi satuan (mis. kg, g, L)",
+      });
+    }
+    const hasInitialStore = !!(data.initial_store_id && data.initial_store_id.trim());
+    const hasInitialQty = data.initial_qty != null && !Number.isNaN(data.initial_qty);
+    if (hasInitialStore && !hasInitialQty) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["initial_qty"],
+        message: "Isi jumlah stok awal",
+      });
+    }
+    if (hasInitialQty && !hasInitialStore) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["initial_store_id"],
+        message: "Pilih toko untuk stok awal",
+      });
+    }
+    if (
+      hasInitialQty &&
+      !data.is_weighted &&
+      data.initial_qty != null &&
+      !Number.isInteger(data.initial_qty)
+    ) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["initial_qty"],
+        message: "Jumlah harus bilangan bulat",
       });
     }
     if (!data.has_bundle) return;
@@ -103,6 +134,8 @@ const EMPTY_DEFAULTS: FormValues = {
   bundle_label: "",
   bundle_qty: undefined,
   bundle_price: undefined,
+  initial_store_id: "",
+  initial_qty: undefined,
 };
 
 export function ProductFormDialog({ open, onOpenChange, product }: Props) {
@@ -110,6 +143,9 @@ export function ProductFormDialog({ open, onOpenChange, product }: Props) {
   const create = useCreateProduct();
   const update = useUpdateProduct();
   const mutation = isEdit ? update : create;
+  const storesQuery = useStores();
+  const stores = storesQuery.data ?? [];
+  const onlyStore = stores.length === 1 ? stores[0] : null;
 
   const {
     register,
@@ -117,6 +153,7 @@ export function ProductFormDialog({ open, onOpenChange, product }: Props) {
     reset,
     setError,
     setFocus,
+    setValue,
     watch,
     formState: { errors },
   } = useForm<FormValues>({
@@ -126,6 +163,7 @@ export function ProductFormDialog({ open, onOpenChange, product }: Props) {
 
   const hasBundle = watch("has_bundle");
   const isWeighted = watch("is_weighted");
+  const initialStoreId = watch("initial_store_id");
 
   useEffect(() => {
     if (!open) return;
@@ -141,11 +179,20 @@ export function ProductFormDialog({ open, onOpenChange, product }: Props) {
       bundle_label: product?.bundle_label ?? "",
       bundle_qty: product?.bundle_qty ?? undefined,
       bundle_price: product?.bundle_price ?? undefined,
+      initial_store_id: "",
+      initial_qty: undefined,
     });
   }, [open, product, reset]);
 
+  useEffect(() => {
+    if (!open || isEdit) return;
+    if (onlyStore && !initialStoreId) {
+      setValue("initial_store_id", onlyStore.id);
+    }
+  }, [open, isEdit, onlyStore, initialStoreId, setValue]);
+
   const onSubmit = (values: FormValues) => {
-    const body = {
+    const baseBody = {
       barcode: values.barcode?.trim() ? values.barcode.trim() : null,
       name: values.name.trim(),
       sell_price: values.sell_price,
@@ -159,13 +206,26 @@ export function ProductFormDialog({ open, onOpenChange, product }: Props) {
         ? null
         : (values.bundle_label ?? "").trim() || null,
     };
+    const storeId = values.initial_store_id?.trim() ?? "";
+    const qty = values.initial_qty;
+    const includeInitialStock =
+      !isEdit && storeId !== "" && qty != null && !Number.isNaN(qty);
+    const body = includeInitialStock
+      ? {
+          ...baseBody,
+          initial_store_id: storeId,
+          initial_qty: qty,
+        }
+      : baseBody;
     const onSuccess = () => {
       if (isEdit) {
         toast.success("Produk diperbarui");
         onOpenChange(false);
         return;
       }
-      toast.success("Produk berhasil dibuat");
+      toast.success(
+        includeInitialStock ? "Produk berhasil dibuat & stok awal dicatat" : "Produk berhasil dibuat",
+      );
       reset(EMPTY_DEFAULTS);
       requestAnimationFrame(() => setFocus("barcode"));
     };
@@ -182,6 +242,8 @@ export function ProductFormDialog({ open, onOpenChange, product }: Props) {
             "bundle_label",
             "is_weighted",
             "unit_label",
+            "initial_store_id",
+            "initial_qty",
           ] as const;
           for (const key of keys) {
             const messages = data[key];
@@ -196,7 +258,7 @@ export function ProductFormDialog({ open, onOpenChange, product }: Props) {
       }
     };
     if (isEdit && product) {
-      update.mutate({ id: product.id, body }, { onSuccess, onError });
+      update.mutate({ id: product.id, body: baseBody }, { onSuccess, onError });
     } else {
       create.mutate(body, { onSuccess, onError });
     }
@@ -369,6 +431,67 @@ export function ProductFormDialog({ open, onOpenChange, product }: Props) {
               </div>
             )}
           </div>
+
+          {!isEdit && stores.length > 0 && (
+            <div className="rounded-md border border-border bg-muted/40 p-4 space-y-4">
+              <div>
+                <p className="text-sm font-semibold">Stok awal (opsional)</p>
+                <p className="text-xs text-muted-foreground">
+                  Catat penerimaan stok pertama bersamaan dengan pembuatan produk.
+                </p>
+              </div>
+
+              {stores.length === 1 ? (
+                <p className="text-sm">
+                  Toko: <span className="font-semibold">{onlyStore?.name}</span>
+                </p>
+              ) : (
+                <div>
+                  <Label htmlFor="initial-store">Toko</Label>
+                  <select
+                    id="initial-store"
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                    aria-invalid={!!errors.initial_store_id}
+                    {...register("initial_store_id")}
+                  >
+                    <option value="">— Pilih toko —</option>
+                    {stores.map((s) => (
+                      <option key={s.id} value={s.id}>
+                        {s.name}
+                      </option>
+                    ))}
+                  </select>
+                  {errors.initial_store_id && (
+                    <p className="mt-2 text-sm font-semibold text-destructive">
+                      {errors.initial_store_id.message}
+                    </p>
+                  )}
+                </div>
+              )}
+
+              <div>
+                <Label htmlFor="initial-qty">
+                  Jumlah ({isWeighted ? watch("unit_label") || "satuan" : "pcs"})
+                </Label>
+                <Input
+                  id="initial-qty"
+                  type="number"
+                  inputMode={isWeighted ? "decimal" : "numeric"}
+                  min={isWeighted ? 0.01 : 1}
+                  step={isWeighted ? 0.01 : 1}
+                  placeholder="0"
+                  className="text-right font-mono text-lg"
+                  aria-invalid={!!errors.initial_qty}
+                  {...register("initial_qty", { valueAsNumber: true })}
+                />
+                {errors.initial_qty && (
+                  <p className="mt-2 text-sm font-semibold text-destructive">
+                    {errors.initial_qty.message}
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
 
           <DialogFooter>
             <Button

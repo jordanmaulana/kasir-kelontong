@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
@@ -6,6 +8,8 @@ from rest_framework.authtoken.models import Token
 from rest_framework.test import APIClient
 
 from product.models import Product
+from stock.models import StockMovement, StockReason, StoreStock
+from store.models import Store
 from tenant.models import Tenant
 
 User = get_user_model()
@@ -356,3 +360,148 @@ class WeightedProductTests(TestCase):
         self.assertEqual(res.status_code, status.HTTP_201_CREATED)
         self.assertFalse(res.data["is_weighted"])
         self.assertEqual(res.data["unit_label"], "pcs")
+
+
+class InitialStockOnCreateTests(TestCase):
+    def setUp(self):
+        self.user, self.tenant, self.token = _make_user("a@b.com")
+        self.client = _client_for(self.token)
+        self.url = reverse("api-v1-products")
+        self.store = Store.objects.create(tenant=self.tenant, name="Toko Pusat", code="PUSAT")
+
+    def test_create_product_with_initial_stock(self):
+        res = self.client.post(
+            self.url,
+            {
+                "name": "Indomie",
+                "sell_price": 3500,
+                "initial_store_id": self.store.id,
+                "initial_qty": 10,
+            },
+            format="json",
+        )
+        self.assertEqual(res.status_code, status.HTTP_201_CREATED, res.data)
+        self.assertNotIn("initial_store_id", res.data)
+        self.assertNotIn("initial_qty", res.data)
+        product = Product.objects.get(id=res.data["id"])
+        stock = StoreStock.objects.get(store=self.store, product=product)
+        self.assertEqual(stock.qty, Decimal("10"))
+        movements = StockMovement.objects.filter(store=self.store, product=product)
+        self.assertEqual(movements.count(), 1)
+        movement = movements.get()
+        self.assertEqual(movement.reason, StockReason.RECEIVING)
+        self.assertEqual(movement.delta, Decimal("10"))
+        self.assertEqual(movement.actor_id, self.user.id)
+        self.assertEqual(movement.note, "")
+
+    def test_create_product_without_initial_stock_creates_no_movement(self):
+        res = self.client.post(
+            self.url,
+            {"name": "Sabun", "sell_price": 5000},
+            format="json",
+        )
+        self.assertEqual(res.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(StockMovement.objects.count(), 0)
+        self.assertEqual(StoreStock.objects.count(), 0)
+
+    def test_initial_qty_without_store_400(self):
+        res = self.client.post(
+            self.url,
+            {"name": "Sabun", "sell_price": 5000, "initial_qty": 5},
+            format="json",
+        )
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("initial_store_id", res.data)
+        self.assertEqual(Product.objects.count(), 0)
+
+    def test_initial_store_without_qty_400(self):
+        res = self.client.post(
+            self.url,
+            {"name": "Sabun", "sell_price": 5000, "initial_store_id": self.store.id},
+            format="json",
+        )
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("initial_qty", res.data)
+        self.assertEqual(Product.objects.count(), 0)
+
+    def test_initial_stock_rejects_store_from_other_tenant(self):
+        _, other_tenant, _ = _make_user("z@b.com")
+        other_store = Store.objects.create(tenant=other_tenant, name="Lain", code="LAIN")
+        res = self.client.post(
+            self.url,
+            {
+                "name": "Sabun",
+                "sell_price": 5000,
+                "initial_store_id": other_store.id,
+                "initial_qty": 5,
+            },
+            format="json",
+        )
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("initial_store_id", res.data)
+        self.assertEqual(Product.objects.filter(tenant=self.tenant).count(), 0)
+        self.assertEqual(StockMovement.objects.count(), 0)
+
+    def test_initial_qty_decimal_rejected_for_non_weighted(self):
+        res = self.client.post(
+            self.url,
+            {
+                "name": "Sabun",
+                "sell_price": 5000,
+                "initial_store_id": self.store.id,
+                "initial_qty": "1.5",
+            },
+            format="json",
+        )
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("initial_qty", res.data)
+        self.assertEqual(Product.objects.count(), 0)
+
+    def test_initial_qty_decimal_allowed_for_weighted(self):
+        res = self.client.post(
+            self.url,
+            {
+                "name": "Telur",
+                "sell_price": 30000,
+                "is_weighted": True,
+                "unit_label": "kg",
+                "initial_store_id": self.store.id,
+                "initial_qty": "2.5",
+            },
+            format="json",
+        )
+        self.assertEqual(res.status_code, status.HTTP_201_CREATED, res.data)
+        product = Product.objects.get(id=res.data["id"])
+        stock = StoreStock.objects.get(store=self.store, product=product)
+        self.assertEqual(stock.qty, Decimal("2.5"))
+
+    def test_unknown_initial_store_id_400(self):
+        res = self.client.post(
+            self.url,
+            {
+                "name": "Sabun",
+                "sell_price": 5000,
+                "initial_store_id": "000000000000000000000000",
+                "initial_qty": 5,
+            },
+            format="json",
+        )
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("initial_store_id", res.data)
+        self.assertEqual(Product.objects.count(), 0)
+
+    def test_patch_ignores_initial_stock_fields(self):
+        product = Product.objects.create(tenant=self.tenant, name="Sabun", sell_price=5000)
+        url = reverse("api-v1-product-detail", args=[product.id])
+        res = self.client.patch(
+            url,
+            {
+                "name": "Sabun Mandi",
+                "initial_store_id": self.store.id,
+                "initial_qty": 5,
+            },
+            format="json",
+        )
+        self.assertEqual(res.status_code, status.HTTP_200_OK, res.data)
+        self.assertEqual(StockMovement.objects.count(), 0)
+        self.assertEqual(StoreStock.objects.count(), 0)

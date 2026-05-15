@@ -21,8 +21,12 @@ export function useCreateProduct() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: createProduct,
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       qc.invalidateQueries({ queryKey: PRODUCTS_KEY });
+      if (variables.initial_store_id) {
+        qc.invalidateQueries({ queryKey: ["stock", variables.initial_store_id] });
+        qc.invalidateQueries({ queryKey: ["movements", variables.initial_store_id] });
+      }
     },
   });
 }

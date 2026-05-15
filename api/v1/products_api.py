@@ -1,3 +1,4 @@
+from django.db import transaction
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
@@ -9,6 +10,8 @@ from rest_framework.views import APIView
 from api.v1._tenant import require_tenant as _require_tenant
 from api.v1.serializers import ProductSerializer
 from product.models import Product
+from stock.models import StockReason
+from stock.services import record_movement
 
 
 class ProductsView(APIView):
@@ -30,7 +33,18 @@ class ProductsView(APIView):
             return err
         serializer = ProductSerializer(data=request.data, context={"tenant": tenant})
         serializer.is_valid(raise_exception=True)
-        product = serializer.save(tenant=tenant, actor=request.user)
+        initial_store = serializer.validated_data.get("_initial_store")
+        initial_qty = serializer.validated_data.get("initial_qty")
+        with transaction.atomic():
+            product = serializer.save(tenant=tenant, actor=request.user)
+            if initial_store and initial_qty is not None:
+                record_movement(
+                    store=initial_store,
+                    product=product,
+                    delta=initial_qty,
+                    reason=StockReason.RECEIVING,
+                    actor=request.user,
+                )
         return Response(ProductSerializer(product).data, status=status.HTTP_201_CREATED)
 
 
