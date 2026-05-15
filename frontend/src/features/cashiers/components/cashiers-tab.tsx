@@ -13,7 +13,11 @@ import {
 } from "@/components/ui/table";
 import { CashierFormDialog } from "@/features/cashiers/components/cashier-form-dialog";
 import { DeactivateCashierDialog } from "@/features/cashiers/components/deactivate-cashier-dialog";
-import { useCashiers, useUpdateCashier } from "@/features/cashiers/hooks";
+import {
+  useCashiers,
+  useImpersonateCashier,
+  useUpdateCashier,
+} from "@/features/cashiers/hooks";
 import type { Cashier } from "@/features/cashiers/types";
 
 const dateFmt = new Intl.DateTimeFormat("id-ID", {
@@ -28,6 +32,7 @@ interface Props {
 export function CashiersTab({ storeId }: Props) {
   const { data: cashiers, isLoading, isError, error } = useCashiers(storeId);
   const reactivate = useUpdateCashier(storeId);
+  const impersonate = useImpersonateCashier(storeId);
   const [formOpen, setFormOpen] = useState(false);
   const [editCashier, setEditCashier] = useState<Cashier | undefined>();
   const [deactivateOpen, setDeactivateOpen] = useState(false);
@@ -57,6 +62,14 @@ export function CashiersTab({ storeId }: Props) {
           toast.error(err instanceof Error ? err.message : "Permintaan gagal"),
       },
     );
+  };
+
+  const onImpersonate = (cashier: Cashier) => {
+    if (!cashier.active || impersonate.isPending) return;
+    impersonate.mutate(cashier.id, {
+      onError: (err) =>
+        toast.error(err instanceof Error ? err.message : "Gagal membuka POS"),
+    });
   };
 
   return (
@@ -94,7 +107,23 @@ export function CashiersTab({ storeId }: Props) {
           </TableHeader>
           <TableBody>
             {cashiers.map((cashier) => (
-              <TableRow key={cashier.id} className="h-16">
+              <TableRow
+                key={cashier.id}
+                className={
+                  "h-16 " +
+                  (cashier.active
+                    ? "cursor-pointer hover:bg-muted/50"
+                    : "")
+                }
+                onClick={
+                  cashier.active ? () => onImpersonate(cashier) : undefined
+                }
+                title={
+                  cashier.active
+                    ? "Buka POS sebagai kasir ini"
+                    : undefined
+                }
+              >
                 <TableCell className="font-semibold text-foreground">
                   {cashier.display_name}
                 </TableCell>
@@ -112,7 +141,10 @@ export function CashiersTab({ storeId }: Props) {
                       size="icon-sm"
                       variant="ghost"
                       aria-label={`Ubah ${cashier.display_name}`}
-                      onClick={() => openEdit(cashier)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        openEdit(cashier);
+                      }}
                     >
                       <Pencil className="size-5" />
                     </Button>
@@ -121,7 +153,10 @@ export function CashiersTab({ storeId }: Props) {
                         size="icon-sm"
                         variant="ghost"
                         aria-label={`Nonaktifkan ${cashier.display_name}`}
-                        onClick={() => openDeactivate(cashier)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openDeactivate(cashier);
+                        }}
                         className="text-destructive hover:bg-destructive/10"
                       >
                         <UserMinus className="size-5" />
@@ -131,7 +166,10 @@ export function CashiersTab({ storeId }: Props) {
                         size="icon-sm"
                         variant="ghost"
                         aria-label={`Aktifkan ${cashier.display_name}`}
-                        onClick={() => onReactivate(cashier)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onReactivate(cashier);
+                        }}
                         disabled={reactivate.isPending}
                         className="text-[color:var(--color-success)] hover:bg-[color:var(--color-success)]/10"
                       >

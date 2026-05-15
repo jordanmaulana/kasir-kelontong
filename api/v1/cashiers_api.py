@@ -5,8 +5,8 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from api.v1._tenant import require_store
-from api.v1.serializers import CashierSerializer
-from cashier.models import Cashier
+from api.v1.serializers import CashierSerializer, CashierSessionSerializer
+from cashier.models import Cashier, CashierSession
 
 
 def _get_cashier(user, store_id, cashier_id):
@@ -68,3 +68,19 @@ class CashierDetailView(APIView):
         cashier.actor = request.user
         cashier.save(update_fields=["active", "actor", "updated_on"])
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class CashierImpersonateView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, store_id, cashier_id):
+        cashier, err = _get_cashier(request.user, store_id, cashier_id)
+        if err:
+            return err
+        if not cashier.active:
+            return Response(
+                {"detail": "Kasir nonaktif"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        session = CashierSession.issue(cashier)
+        return Response(CashierSessionSerializer(session).data)

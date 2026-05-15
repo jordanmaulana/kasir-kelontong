@@ -1,0 +1,79 @@
+@baseUrl = http://localhost:8000/api/v1
+
+# @name login
+### Admin login (for store-level report)
+POST {{baseUrl}}/auth/login/
+Content-Type: application/json
+
+{
+  "email": "owner@example.com",
+  "password": "SecurePass123!"
+}
+
+###
+
+# @name listStores
+GET {{baseUrl}}/stores/
+Authorization: Token {{login.response.body.token}}
+
+###
+
+# @name cashierLogin
+### Cashier login (for create + today endpoints)
+POST {{baseUrl}}/auth/cashier-login/
+Content-Type: application/json
+
+{
+  "store_code": "TOKO01",
+  "pin": "123456"
+}
+
+###
+
+### Create sale (cashier)
+# - lines: min 1; no duplicate (product_id, is_bundle) pair
+# - qty: decimal(12,2), min 0.01 (whole number unless product is_weighted)
+# - tendered: integer IDR; must be >= computed subtotal
+POST {{baseUrl}}/cashier/sales/
+Authorization: CashierToken {{cashierLogin.response.body.token}}
+Content-Type: application/json
+
+{
+  "lines": [
+    {
+      "product_id": "<product-id-1>",
+      "qty": "2.00",
+      "is_bundle": false
+    },
+    {
+      "product_id": "<product-id-2>",
+      "qty": "1.00",
+      "is_bundle": true
+    }
+  ],
+  "tendered": 200000
+}
+
+###
+
+### Today's sales by this cashier (max 200, newest first)
+GET {{baseUrl}}/cashier/sales/today/
+Authorization: CashierToken {{cashierLogin.response.body.token}}
+
+###
+
+### Store sales report — today (defaults: from=today, to=from)
+GET {{baseUrl}}/stores/{{listStores.response.body.0.id}}/sales/report/
+Authorization: Token {{login.response.body.token}}
+
+###
+
+### Store sales report — date range (ISO yyyy-mm-dd, from <= to)
+GET {{baseUrl}}/stores/{{listStores.response.body.0.id}}/sales/report/?from=2026-05-01&to=2026-05-16
+Authorization: Token {{login.response.body.token}}
+
+###
+
+### Store sales report — CSV export (tab-separated, per-line rows)
+GET {{baseUrl}}/stores/{{listStores.response.body.0.id}}/sales/report/?from=2026-05-01&to=2026-05-16&export=csv
+Authorization: Token {{login.response.body.token}}

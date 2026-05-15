@@ -1,4 +1,5 @@
 import { api } from "@/lib/api";
+import type { CashierSession } from "@/features/cashier-auth/types";
 import type {
   Cashier,
   CashierInput,
@@ -37,4 +38,14 @@ export function deactivateCashier(
   return api<void>(`/stores/${storeId}/cashiers/${id}/`, {
     method: "DELETE",
   });
+}
+
+export function impersonateCashier(
+  storeId: string,
+  id: string
+): Promise<CashierSession> {
+  return api<CashierSession>(
+    `/stores/${storeId}/cashiers/${id}/impersonate/`,
+    { method: "POST" }
+  );
 }

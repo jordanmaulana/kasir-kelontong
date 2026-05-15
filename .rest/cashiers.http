@@ -1,0 +1,64 @@
+@baseUrl = http://localhost:8000/api/v1
+
+# @name login
+### Login admin
+POST {{baseUrl}}/auth/login/
+Content-Type: application/json
+
+{
+  "email": "owner@example.com",
+  "password": "SecurePass123!"
+}
+
+###
+
+# @name listStores
+### List stores → first store id used below
+GET {{baseUrl}}/stores/
+Authorization: Token {{login.response.body.token}}
+
+###
+
+# @name listCashiers
+### List cashiers in store
+GET {{baseUrl}}/stores/{{listStores.response.body.0.id}}/cashiers/
+Authorization: Token {{login.response.body.token}}
+
+###
+
+### Create cashier
+# pin: ^\d{6}$ — must not collide with another active cashier in this store
+POST {{baseUrl}}/stores/{{listStores.response.body.0.id}}/cashiers/
+Authorization: Token {{login.response.body.token}}
+Content-Type: application/json
+
+{
+  "display_name": "Budi Santoso",
+  "pin": "654321",
+  "active": true
+}
+
+###
+
+### Get one cashier
+GET {{baseUrl}}/stores/{{listStores.response.body.0.id}}/cashiers/{{listCashiers.response.body.0.id}}/
+Authorization: Token {{login.response.body.token}}
+
+###
+
+### Update cashier (partial — rotate PIN, rename, toggle active)
+PATCH {{baseUrl}}/stores/{{listStores.response.body.0.id}}/cashiers/{{listCashiers.response.body.0.id}}/
+Authorization: Token {{login.response.body.token}}
+Content-Type: application/json
+
+{
+  "display_name": "Budi S.",
+  "pin": "999999",
+  "active": true
+}
+
+###
+
+### Deactivate cashier (soft delete → active=false)
+DELETE {{baseUrl}}/stores/{{listStores.response.body.0.id}}/cashiers/{{listCashiers.response.body.0.id}}/
+Authorization: Token {{login.response.body.token}}

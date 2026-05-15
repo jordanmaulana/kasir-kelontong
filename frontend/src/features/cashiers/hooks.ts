@@ -1,8 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
+import { setCashierToken } from "@/features/cashier-auth/api";
 import {
   createCashier,
   deactivateCashier,
+  impersonateCashier,
   listCashiers,
   updateCashier,
 } from "@/features/cashiers/api";
@@ -48,6 +50,16 @@ export function useDeactivateCashier(storeId: string) {
     mutationFn: (id: string) => deactivateCashier(storeId, id),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: cashiersKey(storeId) });
+    },
+  });
+}
+
+export function useImpersonateCashier(storeId: string) {
+  return useMutation({
+    mutationFn: (id: string) => impersonateCashier(storeId, id),
+    onSuccess: (session) => {
+      setCashierToken(session.token);
+      window.open("/cashier/home", "_blank", "noopener");
     },
   });
 }

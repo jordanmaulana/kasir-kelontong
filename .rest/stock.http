@@ -1,0 +1,112 @@
+@baseUrl = http://localhost:8000/api/v1
+
+# @name login
+### Login admin
+POST {{baseUrl}}/auth/login/
+Content-Type: application/json
+
+{
+  "email": "owner@example.com",
+  "password": "SecurePass123!"
+}
+
+###
+
+# @name listStores
+GET {{baseUrl}}/stores/
+Authorization: Token {{login.response.body.token}}
+
+###
+
+# @name listProducts
+GET {{baseUrl}}/products/
+Authorization: Token {{login.response.body.token}}
+
+###
+
+### Store stock (admin)
+GET {{baseUrl}}/stores/{{listStores.response.body.0.id}}/stock/
+Authorization: Token {{login.response.body.token}}
+
+###
+
+### Store stock — search
+GET {{baseUrl}}/stores/{{listStores.response.body.0.id}}/stock/?q=indomie
+Authorization: Token {{login.response.body.token}}
+
+###
+
+### Stock movements ledger
+GET {{baseUrl}}/stores/{{listStores.response.body.0.id}}/stock/movements/
+Authorization: Token {{login.response.body.token}}
+
+###
+
+### Stock movements — filtered by product + reason + limit
+# reason: receiving | sale | adjustment | void
+# limit: 1..500 (default 100)
+GET {{baseUrl}}/stores/{{listStores.response.body.0.id}}/stock/movements/?product={{listProducts.response.body.0.id}}&reason=receiving&limit=50
+Authorization: Token {{login.response.body.token}}
+
+###
+
+### Receiving (one POST, many lines)
+# Non-weighted product → qty must be whole number. No duplicate product_id per request.
+POST {{baseUrl}}/stores/{{listStores.response.body.0.id}}/receiving/
+Authorization: Token {{login.response.body.token}}
+Content-Type: application/json
+
+{
+  "items": [
+    {
+      "product_id": "{{listProducts.response.body.0.id}}",
+      "qty": "24.00",
+      "note": "Dari supplier Pak Joko"
+    },
+    {
+      "product_id": "{{listProducts.response.body.1.id}}",
+      "qty": "10.00",
+      "note": ""
+    }
+  ]
+}
+
+###
+
+### Adjustment — by delta (positive or negative; must not be zero)
+POST {{baseUrl}}/stores/{{listStores.response.body.0.id}}/adjustments/
+Authorization: Token {{login.response.body.token}}
+Content-Type: application/json
+
+{
+  "product_id": "{{listProducts.response.body.0.id}}",
+  "delta": "-2.00",
+  "note": "Rusak / expired"
+}
+
+###
+
+### Adjustment — by target_qty (set absolute new qty; must differ from current)
+# Provide exactly one of delta OR target_qty (not both).
+POST {{baseUrl}}/stores/{{listStores.response.body.0.id}}/adjustments/
+Authorization: Token {{login.response.body.token}}
+Content-Type: application/json
+
+{
+  "product_id": "{{listProducts.response.body.0.id}}",
+  "target_qty": "8.00",
+  "note": "Koreksi stok hasil opname"
+}
+
+###
+
+### Cashier stock list (uses CashierToken)
+# Login as cashier separately in cashier-auth.http to get a token.
+GET {{baseUrl}}/cashier/stock/
+Authorization: CashierToken <paste-cashier-token>
+
+###
+
+### Cashier stock — search
+GET {{baseUrl}}/cashier/stock/?q=aqua
+Authorization: CashierToken <paste-cashier-token>

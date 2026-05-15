@@ -1,0 +1,17 @@
+@baseUrl = http://localhost:8000/api/v1
+
+### Mayar webhook (no auth header — verified via webhook token in payload by core/payments/mayar.py)
+# Payload shape mirrors Mayar's invoice notification. Returns 401 if token invalid.
+POST {{baseUrl}}/payments/mayar/webhook/
+Content-Type: application/json
+
+{
+  "event": "payment.received",
+  "status": "PAID",
+  "id": "inv_01HXYZ...",
+  "amount": 99000,
+  "customer": {
+    "email": "owner@example.com"
+  },
+  "webhookToken": "<mayar-webhook-token>"
+}

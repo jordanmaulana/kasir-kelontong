@@ -1,0 +1,119 @@
+@baseUrl = http://localhost:8000/api/v1
+
+# @name login
+### Login admin
+POST {{baseUrl}}/auth/login/
+Content-Type: application/json
+
+{
+  "email": "owner@example.com",
+  "password": "SecurePass123!"
+}
+
+###
+
+# @name listStores
+### List stores (id used for initial-stock variant below)
+GET {{baseUrl}}/stores/
+Authorization: Token {{login.response.body.token}}
+
+###
+
+# @name listProducts
+### List products (tenant-scoped, excludes archived)
+GET {{baseUrl}}/products/
+Authorization: Token {{login.response.body.token}}
+
+###
+
+### Search products
+GET {{baseUrl}}/products/?q=minyak
+Authorization: Token {{login.response.body.token}}
+
+###
+
+### Create product — minimal
+# barcode: ^[A-Za-z0-9\-]{1,64}$ (optional, unique per tenant)
+POST {{baseUrl}}/products/
+Authorization: Token {{login.response.body.token}}
+Content-Type: application/json
+
+{
+  "name": "Indomie Goreng",
+  "barcode": "8992388101010",
+  "sell_price": 3500
+}
+
+###
+
+### Create product — with bundle (all 3 bundle_* fields required together)
+POST {{baseUrl}}/products/
+Authorization: Token {{login.response.body.token}}
+Content-Type: application/json
+
+{
+  "name": "Minyak Goreng Bimoli 2L",
+  "barcode": "8992000123456",
+  "sell_price": 45000,
+  "bundle_qty": 3,
+  "bundle_price": 130000,
+  "bundle_label": "3 botol"
+}
+
+###
+
+### Create product — weighted (decimal qty; cannot bundle)
+POST {{baseUrl}}/products/
+Authorization: Token {{login.response.body.token}}
+Content-Type: application/json
+
+{
+  "name": "Beras Pandan Wangi",
+  "barcode": "BRS-PW-25KG",
+  "sell_price": 18000,
+  "is_weighted": true,
+  "unit_label": "kg"
+}
+
+###
+
+### Create product — with initial stock (records RECEIVING movement)
+# initial_store_id + initial_qty are all-or-nothing.
+# Non-weighted product → initial_qty must be whole number.
+POST {{baseUrl}}/products/
+Authorization: Token {{login.response.body.token}}
+Content-Type: application/json
+
+{
+  "name": "Aqua 600ml",
+  "barcode": "8997009010014",
+  "sell_price": 4000,
+  "initial_store_id": "{{listStores.response.body.0.id}}",
+  "initial_qty": "24.00"
+}
+
+###
+
+### Get one product
+GET {{baseUrl}}/products/{{listProducts.response.body.0.id}}/
+Authorization: Token {{login.response.body.token}}
+
+###
+
+### Update product (partial — initial_* ignored on update)
+PATCH {{baseUrl}}/products/{{listProducts.response.body.0.id}}/
+Authorization: Token {{login.response.body.token}}
+Content-Type: application/json
+
+{
+  "sell_price": 47000,
+  "bundle_qty": 6,
+  "bundle_price": 250000,
+  "bundle_label": "1 dus"
+}
+
+###
+
+### Archive product (soft delete → archived_at = now)
+DELETE {{baseUrl}}/products/{{listProducts.response.body.0.id}}/
+Authorization: Token {{login.response.body.token}}

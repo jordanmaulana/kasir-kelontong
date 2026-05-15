@@ -1,0 +1,25 @@
+@baseUrl = http://localhost:8000/api/v1
+
+# @name cashierLogin
+### Cashier login
+# store_code: ^[A-Z0-9]{3,10}$
+# pin: ^\d{6}$ (6 digits)
+POST {{baseUrl}}/auth/cashier-login/
+Content-Type: application/json
+
+{
+  "store_code": "TOKO01",
+  "pin": "123456"
+}
+
+###
+
+### Current cashier session
+GET {{baseUrl}}/auth/cashier-me/
+Authorization: CashierToken {{cashierLogin.response.body.token}}
+
+###
+
+### Cashier logout (deletes CashierSession)
+POST {{baseUrl}}/auth/cashier-logout/
+Authorization: CashierToken {{cashierLogin.response.body.token}}

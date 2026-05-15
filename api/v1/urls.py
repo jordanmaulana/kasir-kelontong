@@ -47,6 +47,11 @@ urlpatterns = [
         cashiers_api.CashierDetailView.as_view(),
         name="api-v1-cashier-detail",
     ),
+    path(
+        "stores/<str:store_id>/cashiers/<str:cashier_id>/impersonate/",
+        cashiers_api.CashierImpersonateView.as_view(),
+        name="api-v1-cashier-impersonate",
+    ),
     path("products/", products_api.ProductsView.as_view(), name="api-v1-products"),
     path(
         "products/<str:product_id>/",

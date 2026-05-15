@@ -1,0 +1,55 @@
+@baseUrl = http://localhost:8000/api/v1
+
+# @name login
+### Login admin (token reused below)
+POST {{baseUrl}}/auth/login/
+Content-Type: application/json
+
+{
+  "email": "owner@example.com",
+  "password": "SecurePass123!"
+}
+
+###
+
+# @name listStores
+### List stores (tenant-scoped)
+GET {{baseUrl}}/stores/
+Authorization: Token {{login.response.body.token}}
+
+###
+
+### Create store
+# code: ^[A-Z0-9]{3,10}$ — unique per tenant
+POST {{baseUrl}}/stores/
+Authorization: Token {{login.response.body.token}}
+Content-Type: application/json
+
+{
+  "name": "Toko Kelontong Merdeka",
+  "code": "MERK01",
+  "address": "Jl. Merdeka 50, Jakarta"
+}
+
+###
+
+### Get one store
+GET {{baseUrl}}/stores/{{listStores.response.body.0.id}}/
+Authorization: Token {{login.response.body.token}}
+
+###
+
+### Update store (partial)
+PATCH {{baseUrl}}/stores/{{listStores.response.body.0.id}}/
+Authorization: Token {{login.response.body.token}}
+Content-Type: application/json
+
+{
+  "address": "Jl. Merdeka 99, Jakarta"
+}
+
+###
+
+### Delete store (hard delete)
+DELETE {{baseUrl}}/stores/{{listStores.response.body.0.id}}/
+Authorization: Token {{login.response.body.token}}

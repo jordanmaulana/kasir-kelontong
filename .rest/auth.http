@@ -1,0 +1,58 @@
+@baseUrl = http://localhost:8000/api/v1
+
+### Register new admin (creates User + Profile + Tenant "My Business")
+POST {{baseUrl}}/auth/register/
+Content-Type: application/json
+
+{
+  "email": "owner@example.com",
+  "password": "SecurePass123!"
+}
+
+###
+
+# @name login
+### Login admin → captures token for downstream requests in this file
+POST {{baseUrl}}/auth/login/
+Content-Type: application/json
+
+{
+  "email": "owner@example.com",
+  "password": "SecurePass123!"
+}
+
+###
+
+### Login via Google ID token (paste credential from Google Sign-In)
+POST {{baseUrl}}/auth/google/
+Content-Type: application/json
+
+{
+  "credential": "<google_id_token>"
+}
+
+###
+
+### Current user
+GET {{baseUrl}}/auth/me/
+Authorization: Token {{login.response.body.token}}
+
+###
+
+### Complete onboarding (creates first store)
+# code: ^[A-Z0-9]{3,10}$ — unique per tenant
+POST {{baseUrl}}/auth/onboarding/
+Authorization: Token {{login.response.body.token}}
+Content-Type: application/json
+
+{
+  "name": "Toko Kelontong Pak Budi",
+  "code": "TOKO01",
+  "address": "Jl. Merdeka No. 10, Jakarta"
+}
+
+###
+
+### Logout (deletes admin token)
+POST {{baseUrl}}/auth/logout/
+Authorization: Token {{login.response.body.token}}
