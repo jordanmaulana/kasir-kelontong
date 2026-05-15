@@ -4,6 +4,7 @@ import { ChevronLeft, MapPin } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CashiersTab } from "@/features/cashiers/components/cashiers-tab";
 import { ReportsTab } from "@/features/reports/components/reports-tab";
+import { MovementsTab } from "@/features/stock/components/movements-tab";
 import { ReceivingTab } from "@/features/stock/components/receiving-tab";
 import { StockTab } from "@/features/stock/components/stock-tab";
 import { useStores } from "@/features/stores/hooks";
@@ -63,6 +64,7 @@ function StoreDetailPage() {
               <TabsTrigger value="stok">Stok</TabsTrigger>
               <TabsTrigger value="penerimaan">Kulakan</TabsTrigger>
               <TabsTrigger value="laporan">Laporan</TabsTrigger>
+              <TabsTrigger value="riwayat">Riwayat Stok</TabsTrigger>
             </TabsList>
             <TabsContent value="kasir">
               <CashiersTab storeId={store.id} />
@@ -75,6 +77,9 @@ function StoreDetailPage() {
             </TabsContent>
             <TabsContent value="laporan">
               <ReportsTab storeId={store.id} />
+            </TabsContent>
+            <TabsContent value="riwayat">
+              <MovementsTab storeId={store.id} />
             </TabsContent>
           </Tabs>
         </>
