@@ -20,6 +20,8 @@ export interface SaleLine {
   is_bundle: boolean;
   bundle_qty: number | null;
   bundle_label: string | null;
+  is_weighted: boolean;
+  unit_label: string;
 }
 
 export interface Sale {
@@ -53,4 +55,6 @@ export interface CashierStockItem {
   bundle_qty: number | null;
   bundle_price: number | null;
   bundle_label: string | null;
+  is_weighted: boolean;
+  unit_label: string;
 }

@@ -13,6 +13,7 @@ import { SaleSuccessDialog } from "@/features/sales/components/sale-success-dial
 import { useCashierStock, useCreateSale } from "@/features/sales/hooks";
 import type { CashierStockItem, Sale } from "@/features/sales/types";
 import { ApiError } from "@/lib/api";
+import { formatQty } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 interface CartLine {
@@ -27,6 +28,8 @@ interface CartLine {
   bundle_qty: number | null;
   bundle_price: number | null;
   bundle_label: string | null;
+  is_weighted: boolean;
+  unit_label: string;
 }
 
 function lineKey(l: Pick<CartLine, "product_id" | "is_bundle">): string {
@@ -110,6 +113,8 @@ export function PosPage() {
           bundle_qty: p.bundle_qty,
           bundle_price: p.bundle_price,
           bundle_label: p.bundle_label,
+          is_weighted: p.is_weighted,
+          unit_label: p.unit_label,
         },
       ];
     });
@@ -124,25 +129,40 @@ export function PosPage() {
     return () => clearTimeout(id);
   }, [exactBarcodeMatch]);
 
+  const stepFor = (l: Pick<CartLine, "is_weighted">) => (l.is_weighted ? 0.25 : 1);
+
   const incrementInCart = (key: string) => {
     setLines((prev) =>
       prev.map((l) => {
         if (lineKey(l) !== key) return l;
         const fresh = stockById.get(l.product_id);
-        return { ...l, qty: l.qty + 1, available_qty: fresh?.qty ?? l.available_qty };
+        return { ...l, qty: l.qty + stepFor(l), available_qty: fresh?.qty ?? l.available_qty };
       }),
     );
   };
 
   const updateQty = (key: string, qty: number) => {
     setLines((prev) =>
-      prev.map((l) => (lineKey(l) === key ? { ...l, qty: Math.max(1, qty) } : l)),
+      prev.map((l) => {
+        if (lineKey(l) !== key) return l;
+        const safe = Number.isFinite(qty) ? qty : l.qty;
+        const min = l.is_weighted ? 0.01 : 1;
+        const next = l.is_weighted
+          ? Math.max(min, Math.round(safe * 100) / 100)
+          : Math.max(min, Math.floor(safe));
+        return { ...l, qty: next };
+      }),
     );
   };
 
   const decrementQty = (key: string) => {
     setLines((prev) =>
-      prev.map((l) => (lineKey(l) === key ? { ...l, qty: Math.max(1, l.qty - 1) } : l)),
+      prev.map((l) => {
+        if (lineKey(l) !== key) return l;
+        const min = l.is_weighted ? 0.01 : 1;
+        const next = Math.max(min, l.qty - stepFor(l));
+        return { ...l, qty: l.is_weighted ? Math.round(next * 100) / 100 : next };
+      }),
     );
   };
 
@@ -206,7 +226,7 @@ export function PosPage() {
     }
   };
 
-  const subtotal = lines.reduce((s, l) => s + l.qty * l.unit_price, 0);
+  const subtotal = lines.reduce((s, l) => s + Math.round(l.qty * l.unit_price), 0);
   const change = Math.max(0, tendered - subtotal);
 
   const neededByProduct = useMemo(() => {
@@ -300,7 +320,13 @@ export function PosPage() {
                         <span className="text-sm text-muted-foreground">
                           <span className="font-mono">{p.barcode ?? "—"}</span>
                           <span className="mx-2">·</span>
-                          <span>stok {p.qty}</span>
+                          <span>
+                            stok{" "}
+                            {formatQty(p.qty, {
+                              isWeighted: p.is_weighted,
+                              unitLabel: p.unit_label,
+                            })}
+                          </span>
                         </span>
                       </div>
                       <div className="flex shrink-0 flex-col gap-2 sm:flex-row">
@@ -356,7 +382,7 @@ export function PosPage() {
                 );
                 const priceLabel = line.is_bundle
                   ? `/${line.bundle_label ?? "bundel"}`
-                  : "/pcs";
+                  : `/${line.unit_label || "pcs"}`;
                 return (
                   <li
                     key={key}
@@ -382,7 +408,11 @@ export function PosPage() {
                           <span className="mx-2">·</span>
                           <Money value={line.unit_price} size="sm" muted /> {priceLabel}
                           <span className="mx-2">·</span>
-                          stok {liveStock}
+                          stok{" "}
+                          {formatQty(liveStock, {
+                            isWeighted: line.is_weighted,
+                            unitLabel: line.unit_label,
+                          })}
                           {overstocked && (
                             <span className="ml-2 font-bold text-destructive">
                               stok kurang
@@ -413,11 +443,12 @@ export function PosPage() {
                           </Button>
                           <Input
                             type="number"
-                            inputMode="numeric"
-                            min={1}
+                            inputMode={line.is_weighted ? "decimal" : "numeric"}
+                            min={line.is_weighted ? 0.01 : 1}
+                            step={line.is_weighted ? 0.25 : 1}
                             value={line.qty}
                             onChange={(e) => updateQty(key, Number(e.target.value))}
-                            className="h-12 w-20 text-center font-mono text-xl"
+                            className="h-12 w-24 text-center font-mono text-xl"
                           />
                           <Button
                             variant="outline"
@@ -427,9 +458,14 @@ export function PosPage() {
                           >
                             <Plus className="size-5" />
                           </Button>
+                          {line.is_weighted && (
+                            <span className="ml-1 text-sm font-semibold text-muted-foreground">
+                              {line.unit_label}
+                            </span>
+                          )}
                         </div>
                         <div className="min-w-28 text-right">
-                          <Money value={line.qty * line.unit_price} size="lg" />
+                          <Money value={Math.round(line.qty * line.unit_price)} size="lg" />
                         </div>
                         <Button
                           size="icon"
@@ -459,7 +495,7 @@ export function PosPage() {
                 <Money value={subtotal} size="3xl" />
               </div>
               <p className="mt-2 text-sm text-muted-foreground">
-                {lines.length} item · {lines.reduce((s, l) => s + stockNeeded(l), 0)} pcs
+                {lines.length} item
               </p>
             </div>
 

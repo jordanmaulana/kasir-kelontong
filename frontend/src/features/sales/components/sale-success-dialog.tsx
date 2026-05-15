@@ -18,7 +18,7 @@ interface Props {
 }
 
 export function SaleSuccessDialog({ sale, onClose, onNewSale }: Props) {
-  const totalUnits = sale.lines.reduce((s, l) => s + l.qty, 0);
+  const hasWeighted = sale.lines.some((l) => l.is_weighted);
 
   return (
     <Dialog open onOpenChange={(open) => !open && onClose()}>
@@ -50,7 +50,7 @@ export function SaleSuccessDialog({ sale, onClose, onNewSale }: Props) {
             <div className="flex items-baseline justify-between">
               <dt className="text-muted-foreground">Item</dt>
               <dd className="font-semibold tabular-nums text-foreground">
-                {sale.lines.length} item · {totalUnits} unit
+                {sale.lines.length} item{hasWeighted ? " (termasuk timbang)" : ""}
               </dd>
             </div>
             <div className="flex items-baseline justify-between">

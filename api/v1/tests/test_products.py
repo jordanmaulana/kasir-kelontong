@@ -295,3 +295,64 @@ class ProductDetailTests(TestCase):
     def test_unauthenticated_401(self):
         res = APIClient().get(self.url)
         self.assertEqual(res.status_code, status.HTTP_401_UNAUTHORIZED)
+
+
+class WeightedProductTests(TestCase):
+    def setUp(self):
+        self.user, self.tenant, self.token = _make_user("a@b.com")
+        self.client = _client_for(self.token)
+        self.url = reverse("api-v1-products")
+
+    def test_create_weighted_product(self):
+        res = self.client.post(
+            self.url,
+            {
+                "name": "Telur",
+                "sell_price": 30000,
+                "is_weighted": True,
+                "unit_label": "kg",
+            },
+            format="json",
+        )
+        self.assertEqual(res.status_code, status.HTTP_201_CREATED, res.data)
+        self.assertTrue(res.data["is_weighted"])
+        self.assertEqual(res.data["unit_label"], "kg")
+
+    def test_weighted_product_rejects_bundle_on_create(self):
+        res = self.client.post(
+            self.url,
+            {
+                "name": "Telur",
+                "sell_price": 30000,
+                "is_weighted": True,
+                "unit_label": "kg",
+                "bundle_qty": 10,
+                "bundle_price": 250000,
+                "bundle_label": "Tray",
+            },
+            format="json",
+        )
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_patch_to_weighted_with_existing_bundle_rejected(self):
+        product = Product.objects.create(
+            tenant=self.tenant,
+            name="Gula",
+            sell_price=15000,
+            bundle_qty=5,
+            bundle_price=70000,
+            bundle_label="Pak",
+        )
+        url = reverse("api-v1-product-detail", args=[product.id])
+        res = self.client.patch(url, {"is_weighted": True}, format="json")
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_default_unit_label_is_pcs(self):
+        res = self.client.post(
+            self.url,
+            {"name": "Indomie", "sell_price": 3500},
+            format="json",
+        )
+        self.assertEqual(res.status_code, status.HTTP_201_CREATED)
+        self.assertFalse(res.data["is_weighted"])
+        self.assertEqual(res.data["unit_label"], "pcs")

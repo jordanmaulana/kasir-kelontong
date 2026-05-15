@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from django.db import transaction
 
 from stock.models import StockMovement, StockReason, StoreStock
@@ -21,10 +23,11 @@ def record_movement(
 ):
     if product.tenant_id != store.tenant_id:
         raise ValueError("Product and store belong to different tenants")
+    delta = Decimal(delta)
     stock, _ = StoreStock.objects.select_for_update().get_or_create(
         store=store,
         product=product,
-        defaults={"qty": 0},
+        defaults={"qty": Decimal("0")},
     )
     new_qty = stock.qty + delta
     if reason == StockReason.SALE and new_qty < 0:

@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
@@ -395,3 +397,87 @@ class ServiceLayerTests(TestCase):
         )
         s = StoreStock.objects.get(store=self.store, product=self.product)
         self.assertEqual(s.qty, 0)
+
+
+class WeightedStockTests(TestCase):
+    def setUp(self):
+        self.user, self.tenant, self.token = _make_user("a@b.com")
+        self.client = _client_for(self.token)
+        self.store = Store.objects.create(tenant=self.tenant, name="Toko A", code="JKT01")
+        self.egg = Product.objects.create(
+            tenant=self.tenant,
+            name="Telur",
+            barcode="EGG1",
+            sell_price=30000,
+            is_weighted=True,
+            unit_label="kg",
+        )
+        self.plain = Product.objects.create(
+            tenant=self.tenant, name="Indomie", barcode="111", sell_price=3500
+        )
+
+    def test_receiving_weighted_decimal_qty(self):
+        url = reverse("api-v1-store-receiving", args=[self.store.id])
+        res = self.client.post(
+            url,
+            {"items": [{"product_id": self.egg.id, "qty": "2.5"}]},
+            format="json",
+        )
+        self.assertEqual(res.status_code, status.HTTP_201_CREATED, res.data)
+        s = StoreStock.objects.get(store=self.store, product=self.egg)
+        self.assertEqual(s.qty, Decimal("2.50"))
+
+    def test_receiving_non_weighted_rejects_decimal(self):
+        url = reverse("api-v1-store-receiving", args=[self.store.id])
+        res = self.client.post(
+            url,
+            {"items": [{"product_id": self.plain.id, "qty": "1.5"}]},
+            format="json",
+        )
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertFalse(StockMovement.objects.exists())
+
+    def test_adjust_weighted_target_decimal(self):
+        record_movement(
+            store=self.store,
+            product=self.egg,
+            delta=Decimal("5.00"),
+            reason=StockReason.RECEIVING,
+            actor=self.user,
+        )
+        url = reverse("api-v1-store-adjustment", args=[self.store.id])
+        res = self.client.post(
+            url,
+            {"product_id": self.egg.id, "target_qty": "1.75", "note": "stok opname"},
+            format="json",
+        )
+        self.assertEqual(res.status_code, status.HTTP_201_CREATED, res.data)
+        s = StoreStock.objects.get(store=self.store, product=self.egg)
+        self.assertEqual(s.qty, Decimal("1.75"))
+
+    def test_adjust_non_weighted_rejects_decimal_delta(self):
+        record_movement(
+            store=self.store,
+            product=self.plain,
+            delta=5,
+            reason=StockReason.RECEIVING,
+            actor=self.user,
+        )
+        url = reverse("api-v1-store-adjustment", args=[self.store.id])
+        res = self.client.post(
+            url,
+            {"product_id": self.plain.id, "delta": "0.5", "note": "x"},
+            format="json",
+        )
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_stock_list_returns_is_weighted_and_unit_label(self):
+        url = reverse("api-v1-store-stock", args=[self.store.id])
+        res = self.client.get(url)
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        egg_row = next(r for r in res.data if r["product_id"] == self.egg.id)
+        self.assertTrue(egg_row["is_weighted"])
+        self.assertEqual(egg_row["unit_label"], "kg")
+        plain_row = next(r for r in res.data if r["product_id"] == self.plain.id)
+        self.assertFalse(plain_row["is_weighted"])
+        self.assertEqual(plain_row["unit_label"], "pcs")

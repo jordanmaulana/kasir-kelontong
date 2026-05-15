@@ -34,12 +34,28 @@ const schema = z
       .number("Harga harus angka")
       .int("Harga harus bilangan bulat")
       .min(0, "Harga tidak boleh negatif"),
+    is_weighted: z.boolean(),
+    unit_label: z.string().trim().max(8).optional(),
     has_bundle: z.boolean(),
     bundle_label: z.string().max(32).optional(),
     bundle_qty: z.number().int().optional(),
     bundle_price: z.number().int().optional(),
   })
   .superRefine((data, ctx) => {
+    if (data.is_weighted && data.has_bundle) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["has_bundle"],
+        message: "Produk timbang tidak bisa memiliki bundel",
+      });
+    }
+    if (data.is_weighted && !(data.unit_label ?? "").trim()) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["unit_label"],
+        message: "Isi satuan (mis. kg, g, L)",
+      });
+    }
     if (!data.has_bundle) return;
     const label = (data.bundle_label ?? "").trim();
     if (!label) {
@@ -81,6 +97,8 @@ const EMPTY_DEFAULTS: FormValues = {
   barcode: "",
   name: "",
   sell_price: 0,
+  is_weighted: false,
+  unit_label: "pcs",
   has_bundle: false,
   bundle_label: "",
   bundle_qty: undefined,
@@ -107,6 +125,7 @@ export function ProductFormDialog({ open, onOpenChange, product }: Props) {
   });
 
   const hasBundle = watch("has_bundle");
+  const isWeighted = watch("is_weighted");
 
   useEffect(() => {
     if (!open) return;
@@ -116,6 +135,8 @@ export function ProductFormDialog({ open, onOpenChange, product }: Props) {
       barcode: product?.barcode ?? "",
       name: product?.name ?? "",
       sell_price: product?.sell_price ?? 0,
+      is_weighted: product?.is_weighted ?? false,
+      unit_label: product?.unit_label ?? "pcs",
       has_bundle: productHasBundle,
       bundle_label: product?.bundle_label ?? "",
       bundle_qty: product?.bundle_qty ?? undefined,
@@ -128,11 +149,15 @@ export function ProductFormDialog({ open, onOpenChange, product }: Props) {
       barcode: values.barcode?.trim() ? values.barcode.trim() : null,
       name: values.name.trim(),
       sell_price: values.sell_price,
-      bundle_qty: values.has_bundle ? values.bundle_qty ?? null : null,
-      bundle_price: values.has_bundle ? values.bundle_price ?? null : null,
-      bundle_label: values.has_bundle
-        ? (values.bundle_label ?? "").trim() || null
-        : null,
+      is_weighted: values.is_weighted,
+      unit_label: values.is_weighted
+        ? (values.unit_label ?? "").trim() || "kg"
+        : "pcs",
+      bundle_qty: values.is_weighted || !values.has_bundle ? null : values.bundle_qty ?? null,
+      bundle_price: values.is_weighted || !values.has_bundle ? null : values.bundle_price ?? null,
+      bundle_label: values.is_weighted || !values.has_bundle
+        ? null
+        : (values.bundle_label ?? "").trim() || null,
     };
     const onSuccess = () => {
       if (isEdit) {
@@ -155,6 +180,8 @@ export function ProductFormDialog({ open, onOpenChange, product }: Props) {
             "bundle_qty",
             "bundle_price",
             "bundle_label",
+            "is_weighted",
+            "unit_label",
           ] as const;
           for (const key of keys) {
             const messages = data[key];
@@ -238,6 +265,43 @@ export function ProductFormDialog({ open, onOpenChange, product }: Props) {
               <input
                 type="checkbox"
                 className="size-5 accent-current"
+                {...register("is_weighted")}
+              />
+              <span className="text-sm font-semibold">
+                Produk timbang (jual per kg/g/L, jumlah boleh desimal)
+              </span>
+            </label>
+
+            {isWeighted && (
+              <div>
+                <Label htmlFor="unit-label">Satuan</Label>
+                <Input
+                  id="unit-label"
+                  placeholder="kg"
+                  maxLength={8}
+                  aria-invalid={!!errors.unit_label}
+                  {...register("unit_label")}
+                />
+                {errors.unit_label && (
+                  <p className="mt-2 text-sm font-semibold text-destructive">
+                    {errors.unit_label.message}
+                  </p>
+                )}
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Harga di atas adalah harga per {watch("unit_label") || "satuan"}.
+                </p>
+              </div>
+            )}
+          </div>
+
+          <div
+            className={`rounded-md border border-border bg-muted/40 p-4 space-y-4 ${isWeighted ? "opacity-50" : ""}`}
+          >
+            <label className="flex items-center gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                className="size-5 accent-current"
+                disabled={isWeighted}
                 {...register("has_bundle")}
               />
               <span className="text-sm font-semibold">
@@ -245,7 +309,7 @@ export function ProductFormDialog({ open, onOpenChange, product }: Props) {
               </span>
             </label>
 
-            {hasBundle && (
+            {hasBundle && !isWeighted && (
               <div className="space-y-4">
                 <div>
                   <Label htmlFor="bundle-label">Nama bundel</Label>

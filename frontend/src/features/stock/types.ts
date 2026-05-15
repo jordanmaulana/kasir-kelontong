@@ -10,6 +10,8 @@ export interface StockItem {
   bundle_qty: number | null;
   bundle_price: number | null;
   bundle_label: string | null;
+  is_weighted: boolean;
+  unit_label: string;
 }
 
 export interface StockMovement {

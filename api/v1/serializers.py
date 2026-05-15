@@ -1,4 +1,5 @@
 import re
+from decimal import Decimal
 from profile.models import Profile
 
 from django.conf import settings
@@ -157,6 +158,8 @@ class ProductSerializer(serializers.Serializer):
     bundle_label = serializers.CharField(
         required=False, allow_null=True, allow_blank=True, max_length=32
     )
+    is_weighted = serializers.BooleanField(required=False, default=False)
+    unit_label = serializers.CharField(required=False, max_length=8, default="pcs")
     created_on = serializers.DateTimeField(read_only=True)
     updated_on = serializers.DateTimeField(read_only=True)
 
@@ -188,18 +191,28 @@ class ProductSerializer(serializers.Serializer):
         label = value.strip()
         return label or None
 
+    def validate_unit_label(self, value):
+        label = (value or "").strip()
+        return label or "pcs"
+
     def validate(self, attrs):
         bundle_keys = ("bundle_qty", "bundle_price", "bundle_label")
         is_partial = bool(getattr(self, "partial", False))
-        if is_partial and not any(k in attrs for k in bundle_keys):
-            return attrs
         current = {
             "bundle_qty": getattr(self.instance, "bundle_qty", None) if self.instance else None,
             "bundle_price": getattr(self.instance, "bundle_price", None) if self.instance else None,
             "bundle_label": getattr(self.instance, "bundle_label", None) if self.instance else None,
+            "is_weighted": getattr(self.instance, "is_weighted", False) if self.instance else False,
         }
         merged = {k: attrs.get(k, current[k]) for k in bundle_keys}
+        is_weighted = attrs.get("is_weighted", current["is_weighted"])
         provided = [k for k, v in merged.items() if v not in (None, "")]
+        if is_weighted and provided:
+            raise serializers.ValidationError(
+                {"bundle": "Produk timbang tidak boleh memiliki bundel"}
+            )
+        if is_partial and not any(k in attrs for k in bundle_keys):
+            return attrs
         if 0 < len(provided) < 3:
             raise serializers.ValidationError(
                 {"bundle": "Bundel harus diisi lengkap: jumlah, harga, dan label"}
@@ -256,11 +269,13 @@ class StockListItemSerializer(serializers.Serializer):
     name = serializers.CharField()
     barcode = serializers.CharField(allow_null=True)
     sell_price = serializers.IntegerField()
-    qty = serializers.IntegerField()
+    qty = serializers.DecimalField(max_digits=12, decimal_places=2, coerce_to_string=False)
     last_movement_at = serializers.DateTimeField(allow_null=True)
     bundle_qty = serializers.IntegerField(allow_null=True)
     bundle_price = serializers.IntegerField(allow_null=True)
     bundle_label = serializers.CharField(allow_null=True)
+    is_weighted = serializers.BooleanField()
+    unit_label = serializers.CharField()
 
 
 class StockMovementSerializer(serializers.Serializer):
@@ -268,7 +283,9 @@ class StockMovementSerializer(serializers.Serializer):
     product_id = serializers.CharField(source="product.id", read_only=True)
     product_name = serializers.CharField(source="product.name", read_only=True)
     barcode = serializers.CharField(source="product.barcode", read_only=True, allow_null=True)
-    delta = serializers.IntegerField(read_only=True)
+    delta = serializers.DecimalField(
+        max_digits=12, decimal_places=2, read_only=True, coerce_to_string=False
+    )
     reason = serializers.CharField(read_only=True)
     note = serializers.CharField(read_only=True, allow_blank=True)
     ref_type = serializers.CharField(read_only=True, allow_blank=True)
@@ -282,7 +299,7 @@ class StockMovementSerializer(serializers.Serializer):
 
 class ReceivingItemSerializer(serializers.Serializer):
     product_id = serializers.CharField()
-    qty = serializers.IntegerField(min_value=1)
+    qty = serializers.DecimalField(max_digits=12, decimal_places=2, min_value=Decimal("0.01"))
     note = serializers.CharField(required=False, allow_blank=True, default="")
 
 
@@ -299,23 +316,33 @@ class ReceivingSerializer(serializers.Serializer):
             if pid in seen:
                 raise serializers.ValidationError(f"Produk {pid} duplikat dalam satu penerimaan")
             seen.add(pid)
-        found = set(
-            Product.objects.filter(
+        products = {
+            p.id: p
+            for p in Product.objects.filter(
                 id__in=product_ids, tenant=store.tenant, archived_at__isnull=True
-            ).values_list("id", flat=True)
-        )
-        missing = set(product_ids) - found
+            )
+        }
+        missing = set(product_ids) - set(products.keys())
         if missing:
             raise serializers.ValidationError(
                 f"Produk tidak ditemukan: {', '.join(sorted(missing))}"
             )
+        for item in value:
+            product = products[item["product_id"]]
+            qty = item["qty"]
+            if not product.is_weighted and qty != qty.to_integral_value():
+                raise serializers.ValidationError(
+                    f"Produk {product.name} hanya bisa diterima dalam satuan utuh"
+                )
         return value
 
 
 class AdjustmentSerializer(serializers.Serializer):
     product_id = serializers.CharField()
-    delta = serializers.IntegerField(required=False)
-    target_qty = serializers.IntegerField(required=False, min_value=0)
+    delta = serializers.DecimalField(max_digits=12, decimal_places=2, required=False)
+    target_qty = serializers.DecimalField(
+        max_digits=12, decimal_places=2, required=False, min_value=Decimal("0")
+    )
     note = serializers.CharField()
 
     def validate_note(self, value):
@@ -332,16 +359,24 @@ class AdjustmentSerializer(serializers.Serializer):
         if has_delta and attrs["delta"] == 0:
             raise serializers.ValidationError({"delta": "Delta tidak boleh 0"})
         store = self.context["store"]
-        if not Product.objects.filter(
+        product = Product.objects.filter(
             id=attrs["product_id"], tenant=store.tenant, archived_at__isnull=True
-        ).exists():
+        ).first()
+        if not product:
             raise serializers.ValidationError({"product_id": "Produk tidak ditemukan"})
+        if not product.is_weighted:
+            value = attrs["delta"] if has_delta else attrs["target_qty"]
+            if value != value.to_integral_value():
+                key = "delta" if has_delta else "target_qty"
+                raise serializers.ValidationError(
+                    {key: f"Produk {product.name} hanya menerima jumlah bilangan bulat"}
+                )
         return attrs
 
 
 class SaleLineInputSerializer(serializers.Serializer):
     product_id = serializers.CharField()
-    qty = serializers.IntegerField(min_value=1)
+    qty = serializers.DecimalField(max_digits=12, decimal_places=2, min_value=Decimal("0.01"))
     is_bundle = serializers.BooleanField(required=False, default=False)
 
 
@@ -366,7 +401,9 @@ class SaleLineSerializer(serializers.Serializer):
     product_id = serializers.CharField(source="product.id", read_only=True)
     product_name = serializers.CharField(source="product.name", read_only=True)
     barcode = serializers.CharField(source="product.barcode", read_only=True, allow_null=True)
-    qty = serializers.IntegerField(read_only=True)
+    qty = serializers.DecimalField(
+        max_digits=12, decimal_places=2, read_only=True, coerce_to_string=False
+    )
     unit_price = serializers.IntegerField(read_only=True)
     line_total = serializers.IntegerField(read_only=True)
     is_bundle = serializers.BooleanField(read_only=True)
@@ -374,6 +411,8 @@ class SaleLineSerializer(serializers.Serializer):
     bundle_label = serializers.CharField(
         source="product.bundle_label", read_only=True, allow_null=True
     )
+    is_weighted = serializers.BooleanField(source="product.is_weighted", read_only=True)
+    unit_label = serializers.CharField(source="product.unit_label", read_only=True)
 
 
 class SaleDetailSerializer(serializers.Serializer):
@@ -417,7 +456,7 @@ class TopProductRowSerializer(serializers.Serializer):
     product_id = serializers.CharField()
     name = serializers.CharField()
     barcode = serializers.CharField(allow_null=True)
-    qty_sold = serializers.IntegerField()
+    qty_sold = serializers.DecimalField(max_digits=14, decimal_places=2, coerce_to_string=False)
     revenue = serializers.IntegerField()
 
 

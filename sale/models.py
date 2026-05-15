@@ -21,7 +21,7 @@ class Sale(BaseModel):
 class SaleLine(BaseModel):
     sale = models.ForeignKey(Sale, on_delete=models.CASCADE, related_name="lines")
     product = models.ForeignKey("product.Product", on_delete=models.PROTECT, related_name="+")
-    qty = models.PositiveIntegerField()
+    qty = models.DecimalField(max_digits=12, decimal_places=2)
     unit_price = models.IntegerField()
     line_total = models.IntegerField()
     is_bundle = models.BooleanField(default=False)

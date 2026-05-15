@@ -17,7 +17,7 @@ class StockMovement(BaseModel):
     product = models.ForeignKey(
         "product.Product", on_delete=models.PROTECT, related_name="stock_movements"
     )
-    delta = models.IntegerField()
+    delta = models.DecimalField(max_digits=12, decimal_places=2)
     reason = models.CharField(max_length=16, choices=StockReason.choices)
     ref_type = models.CharField(max_length=32, blank=True, default="")
     ref_id = models.CharField(max_length=32, blank=True, default="")
@@ -34,7 +34,7 @@ class StockMovement(BaseModel):
 class StoreStock(BaseModel):
     store = models.ForeignKey("store.Store", on_delete=models.CASCADE, related_name="stocks")
     product = models.ForeignKey("product.Product", on_delete=models.CASCADE, related_name="stocks")
-    qty = models.IntegerField(default=0)
+    qty = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     last_movement_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:

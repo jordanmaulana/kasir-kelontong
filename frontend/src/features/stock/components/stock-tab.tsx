@@ -15,6 +15,7 @@ import {
 import { AdjustmentDialog } from "@/features/stock/components/adjustment-dialog";
 import { useStock } from "@/features/stock/hooks";
 import type { StockItem } from "@/features/stock/types";
+import { formatQty } from "@/lib/format";
 
 const dateFmt = new Intl.DateTimeFormat("id-ID", {
   dateStyle: "medium",
@@ -83,7 +84,7 @@ export function StockTab({ storeId }: Props) {
                   <Money value={item.sell_price} size="base" muted />
                 </TableCell>
                 <TableCell className="text-right">
-                  <QtyBadge qty={item.qty} />
+                  <QtyBadge item={item} />
                 </TableCell>
                 <TableCell className="text-muted-foreground">
                   {item.last_movement_at
@@ -112,7 +113,8 @@ export function StockTab({ storeId }: Props) {
   );
 }
 
-function QtyBadge({ qty }: { qty: number }) {
+function QtyBadge({ item }: { item: StockItem }) {
+  const qty = item.qty;
   const cls =
     qty <= 0
       ? "bg-destructive/12 text-destructive ring-1 ring-destructive/30"
@@ -123,7 +125,7 @@ function QtyBadge({ qty }: { qty: number }) {
     <span
       className={`inline-flex min-w-12 items-center justify-center rounded-md px-3 py-1 text-base font-bold tabular-nums ${cls}`}
     >
-      {qty}
+      {formatQty(qty, { isWeighted: item.is_weighted, unitLabel: item.unit_label })}
     </span>
   );
 }

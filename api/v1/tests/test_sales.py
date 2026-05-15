@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
@@ -482,3 +484,129 @@ class SalesTodayListTests(TestCase):
     def test_unauthenticated_401(self):
         res = APIClient().get(self.url)
         self.assertEqual(res.status_code, status.HTTP_401_UNAUTHORIZED)
+
+
+class SaleWeightedTests(TestCase):
+    def setUp(self):
+        self.user, self.tenant, _ = _make_user("a@b.com")
+        self.store = Store.objects.create(tenant=self.tenant, name="Toko A", code="JKT01")
+        self.egg = Product.objects.create(
+            tenant=self.tenant,
+            name="Telur",
+            barcode="EGG1",
+            sell_price=30000,
+            is_weighted=True,
+            unit_label="kg",
+        )
+        self.plain = Product.objects.create(
+            tenant=self.tenant, name="Indomie", barcode="111", sell_price=3500
+        )
+        self.cashier = _make_cashier(self.store)
+        self.session = CashierSession.issue(self.cashier)
+        self.client_ = _cashier_client(self.session.token)
+        self.url = reverse("api-v1-cashier-sales-create")
+        record_movement(
+            store=self.store,
+            product=self.egg,
+            delta=Decimal("5.00"),
+            reason=StockReason.RECEIVING,
+            actor=self.user,
+        )
+        record_movement(
+            store=self.store,
+            product=self.plain,
+            delta=10,
+            reason=StockReason.RECEIVING,
+            actor=self.user,
+        )
+
+    def test_weighted_product_decimal_sale(self):
+        res = self.client_.post(
+            self.url,
+            {
+                "lines": [{"product_id": self.egg.id, "qty": "0.25"}],
+                "tendered": 10000,
+            },
+            format="json",
+        )
+        self.assertEqual(res.status_code, status.HTTP_201_CREATED, res.data)
+        self.assertEqual(res.data["subtotal"], 7500)  # 0.25 * 30000
+        self.assertEqual(res.data["change"], 2500)
+        line = res.data["lines"][0]
+        self.assertEqual(Decimal(str(line["qty"])), Decimal("0.25"))
+        self.assertTrue(line["is_weighted"])
+        self.assertEqual(line["unit_label"], "kg")
+        stock = StoreStock.objects.get(store=self.store, product=self.egg)
+        self.assertEqual(stock.qty, Decimal("4.75"))
+        movement = StockMovement.objects.get(
+            store=self.store, product=self.egg, reason=StockReason.SALE
+        )
+        self.assertEqual(movement.delta, Decimal("-0.25"))
+
+    def test_non_weighted_rejects_decimal_qty(self):
+        res = self.client_.post(
+            self.url,
+            {
+                "lines": [{"product_id": self.plain.id, "qty": "0.5"}],
+                "tendered": 5000,
+            },
+            format="json",
+        )
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("satuan utuh", res.data["detail"])
+        self.assertEqual(Sale.objects.count(), 0)
+
+    def test_weighted_rejects_bundle_flag(self):
+        res = self.client_.post(
+            self.url,
+            {
+                "lines": [{"product_id": self.egg.id, "qty": "1.0", "is_bundle": True}],
+                "tendered": 100000,
+            },
+            format="json",
+        )
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("tidak mendukung bundel", res.data["detail"])
+        self.assertEqual(Sale.objects.count(), 0)
+
+    def test_weighted_rounds_line_total_half_up(self):
+        # 0.33 * 30000 = 9900 (clean)
+        # use 0.07 * 33 = 2.31 — pick price/qty producing fractional product
+        odd = Product.objects.create(
+            tenant=self.tenant,
+            name="Daging",
+            barcode="MEAT",
+            sell_price=99999,
+            is_weighted=True,
+            unit_label="kg",
+        )
+        record_movement(
+            store=self.store,
+            product=odd,
+            delta=Decimal("2.00"),
+            reason=StockReason.RECEIVING,
+            actor=self.user,
+        )
+        res = self.client_.post(
+            self.url,
+            {
+                "lines": [{"product_id": odd.id, "qty": "0.33"}],
+                "tendered": 100000,
+            },
+            format="json",
+        )
+        self.assertEqual(res.status_code, status.HTTP_201_CREATED, res.data)
+        # 0.33 * 99999 = 32999.67 → rounds half-up to 33000
+        self.assertEqual(res.data["subtotal"], 33000)
+
+    def test_weighted_out_of_stock_blocked(self):
+        res = self.client_.post(
+            self.url,
+            {
+                "lines": [{"product_id": self.egg.id, "qty": "5.01"}],
+                "tendered": 1_000_000,
+            },
+            format="json",
+        )
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("stok tidak cukup", res.data["detail"])

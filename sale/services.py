@@ -1,3 +1,5 @@
+from decimal import ROUND_HALF_UP, Decimal
+
 from django.db import transaction
 
 from product.models import Product
@@ -38,8 +40,14 @@ def create_sale(*, store, cashier, lines, tendered):
     resolved_lines = []
     for line in lines:
         product = products[line["product_id"]]
-        qty = line["qty"]
+        qty = Decimal(str(line["qty"]))
+        if qty <= 0:
+            raise SaleValidationError(f"Jumlah {product.name} harus lebih dari 0")
         is_bundle = bool(line.get("is_bundle", False))
+        if product.is_weighted and is_bundle:
+            raise SaleValidationError(f"Produk timbang {product.name} tidak mendukung bundel")
+        if not product.is_weighted and qty != qty.to_integral_value():
+            raise SaleValidationError(f"Produk {product.name} hanya bisa dijual dalam satuan utuh")
         if is_bundle:
             if not product.has_bundle:
                 raise SaleValidationError(f"Produk {product.name} tidak memiliki bundel")
@@ -50,7 +58,7 @@ def create_sale(*, store, cashier, lines, tendered):
             unit_price = product.sell_price
             bundle_qty_snap = None
             stock_delta = -qty
-        line_total = qty * unit_price
+        line_total = int((qty * unit_price).to_integral_value(rounding=ROUND_HALF_UP))
         subtotal += line_total
         resolved_lines.append(
             {

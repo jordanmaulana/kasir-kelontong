@@ -12,6 +12,8 @@ class Product(BaseModel):
     bundle_qty = models.PositiveIntegerField(null=True, blank=True)
     bundle_price = models.PositiveIntegerField(null=True, blank=True)
     bundle_label = models.CharField(max_length=32, null=True, blank=True)
+    is_weighted = models.BooleanField(default=False)
+    unit_label = models.CharField(max_length=8, default="pcs")
     archived_at = models.DateTimeField(null=True, blank=True, db_index=True)
 
     class Meta:

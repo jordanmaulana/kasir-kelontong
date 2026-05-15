@@ -38,6 +38,8 @@ def build_stock_rows(store, q=""):
                 "bundle_qty": p.bundle_qty,
                 "bundle_price": p.bundle_price,
                 "bundle_label": p.bundle_label,
+                "is_weighted": p.is_weighted,
+                "unit_label": p.unit_label,
             }
         )
     return rows

@@ -29,6 +29,8 @@ interface Props {
 
 interface DraftLine extends ReceivingItemInput {
   product_name: string;
+  is_weighted: boolean;
+  unit_label: string;
 }
 
 export function ReceivingTab({ storeId }: Props) {
@@ -52,7 +54,13 @@ export function ReceivingTab({ storeId }: Props) {
   const addLine = (product: Product) => {
     setLines((prev) => [
       ...prev,
-      { product_id: product.id, product_name: product.name, qty: 1 },
+      {
+        product_id: product.id,
+        product_name: product.name,
+        qty: 1,
+        is_weighted: product.is_weighted,
+        unit_label: product.unit_label,
+      },
     ]);
     setSearch("");
     searchRef.current?.focus();
@@ -69,7 +77,8 @@ export function ReceivingTab({ storeId }: Props) {
   };
 
   const canSubmit =
-    lines.length > 0 && lines.every((l) => Number.isInteger(l.qty) && l.qty > 0);
+    lines.length > 0 &&
+    lines.every((l) => l.qty > 0 && (l.is_weighted || Number.isInteger(l.qty)));
 
   const onSubmit = () => {
     submit.mutate(
@@ -148,16 +157,29 @@ export function ReceivingTab({ storeId }: Props) {
                 <TableRow key={line.product_id} className="h-20">
                   <TableCell className="font-semibold text-foreground">
                     {line.product_name}
+                    {line.is_weighted && (
+                      <span className="ml-2 rounded bg-accent/15 px-2 py-0.5 text-xs font-semibold text-accent">
+                        per {line.unit_label}
+                      </span>
+                    )}
                   </TableCell>
                   <TableCell className="text-right">
-                    <Input
-                      type="number"
-                      inputMode="numeric"
-                      min={1}
-                      value={line.qty}
-                      onChange={(e) => updateQty(line.product_id, Number(e.target.value))}
-                      className="ml-auto h-14 w-28 text-right font-mono text-xl"
-                    />
+                    <div className="flex items-center justify-end gap-2">
+                      <Input
+                        type="number"
+                        inputMode={line.is_weighted ? "decimal" : "numeric"}
+                        min={line.is_weighted ? 0.01 : 1}
+                        step={line.is_weighted ? 0.01 : 1}
+                        value={line.qty}
+                        onChange={(e) => updateQty(line.product_id, Number(e.target.value))}
+                        className="h-14 w-28 text-right font-mono text-xl"
+                      />
+                      {line.is_weighted && (
+                        <span className="text-sm font-semibold text-muted-foreground">
+                          {line.unit_label}
+                        </span>
+                      )}
+                    </div>
                   </TableCell>
                   <TableCell>
                     <Button
@@ -176,10 +198,7 @@ export function ReceivingTab({ storeId }: Props) {
           </Table>
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-base text-muted-foreground">
-              Total {lines.length} item ·{" "}
-              <span className="font-semibold text-foreground">
-                {lines.reduce((s, l) => s + (Number.isFinite(l.qty) ? l.qty : 0), 0)} unit
-              </span>
+              Total {lines.length} item
             </p>
             <div className="flex gap-3">
               <Button variant="outline" onClick={() => setLines([])} disabled={submit.isPending}>
