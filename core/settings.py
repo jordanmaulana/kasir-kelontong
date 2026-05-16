@@ -19,7 +19,7 @@ if not DEBUG and SECRET_KEY.startswith("django-insecure-"):
 
 ALLOWED_HOSTS = [
     h.strip()
-    for h in os.environ.get("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
+    for h in os.environ.get("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1,10.0.2.2").split(",")
     if h.strip()
 ]
 
