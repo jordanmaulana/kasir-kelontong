@@ -18,7 +18,7 @@ until [ "$(docker compose --env-file .env.docker ps -q postgres | xargs -I{} doc
 done
 
 echo "==> django migrate"
-docker compose --env-file .env.docker exec -T backend uv run manage.py migrate --noinput
+docker compose --env-file .env.docker exec -T backend uv run manage.py migrate --noinput --fake-initial
 
 echo "==> done"
 docker compose --env-file .env.docker ps
