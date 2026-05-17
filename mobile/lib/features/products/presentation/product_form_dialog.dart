@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -8,6 +11,8 @@ import '../../../core/widgets/app_input.dart';
 import '../../../core/widgets/snackbar.dart';
 import '../data/products_api.dart';
 import '../domain/product.dart';
+
+final _barcodeRe = RegExp(r'^[A-Za-z0-9-]{1,64}$');
 
 class ProductFormDialog extends ConsumerStatefulWidget {
   const ProductFormDialog({super.key, this.initial});
@@ -27,6 +32,12 @@ class _ProductFormDialogState extends ConsumerState<ProductFormDialog> {
   final _unitLabelCtrl = TextEditingController();
   bool _weighted = false;
   bool _submitting = false;
+  bool _nameTouched = false;
+  bool _settingNameProgrammatically = false;
+  Timer? _lookupDebounce;
+  CancelToken? _lookupCancel;
+
+  bool get _isEdit => widget.initial != null;
 
   @override
   void initState() {
@@ -41,11 +52,18 @@ class _ProductFormDialogState extends ConsumerState<ProductFormDialog> {
       _bundleLabelCtrl.text = p.bundleLabel ?? '';
       _unitLabelCtrl.text = p.unitLabel ?? '';
       _weighted = p.isWeighted;
+      _nameTouched = true;
     }
+    _nameCtrl.addListener(_handleNameChanged);
+    _barcodeCtrl.addListener(_handleBarcodeChanged);
   }
 
   @override
   void dispose() {
+    _lookupDebounce?.cancel();
+    _lookupCancel?.cancel();
+    _nameCtrl.removeListener(_handleNameChanged);
+    _barcodeCtrl.removeListener(_handleBarcodeChanged);
     for (final c in [
       _nameCtrl,
       _priceCtrl,
@@ -58,6 +76,47 @@ class _ProductFormDialogState extends ConsumerState<ProductFormDialog> {
       c.dispose();
     }
     super.dispose();
+  }
+
+  void _handleNameChanged() {
+    if (_settingNameProgrammatically) return;
+    if (_nameTouched) return;
+    if (_nameCtrl.text.isEmpty) return;
+    _nameTouched = true;
+  }
+
+  void _handleBarcodeChanged() {
+    if (_isEdit) return;
+    if (_nameTouched) return;
+    _lookupDebounce?.cancel();
+    _lookupCancel?.cancel();
+    _lookupCancel = null;
+    final barcode = _barcodeCtrl.text.trim();
+    if (!_barcodeRe.hasMatch(barcode)) return;
+    _lookupDebounce = Timer(const Duration(milliseconds: 300), () async {
+      final cancel = CancelToken();
+      _lookupCancel = cancel;
+      try {
+        final name =
+            await ref.read(productsApiProvider).lookupBarcode(
+                  barcode,
+                  cancelToken: cancel,
+                );
+        if (!mounted) return;
+        if (name == null || name.isEmpty) return;
+        if (_nameTouched) return;
+        if (_nameCtrl.text.trim().isNotEmpty) return;
+        _settingNameProgrammatically = true;
+        _nameCtrl.text = name;
+        _settingNameProgrammatically = false;
+      } catch (_) {
+        // best-effort autofill, swallow errors
+      } finally {
+        if (identical(_lookupCancel, cancel)) {
+          _lookupCancel = null;
+        }
+      }
+    });
   }
 
   Future<void> _submit() async {

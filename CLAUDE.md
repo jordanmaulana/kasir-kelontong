@@ -37,7 +37,7 @@ DB selection: `core/settings.py` uses SQLite when `POSTGRES_HOST` is empty, Post
 
 Django project root is `core/`. Each domain is its own app, kept thin:
 
-- `tenant/`, `store/`, `cashier/`, `product/`, `stock/`, `sale/`, `profile/` — models only (+ `admin.py`).
+- `tenant/`, `store/`, `cashier/`, `product/`, `stock/`, `sale/`, `profile/`, `catalog/` — models only (+ `admin.py`). `catalog.BarcodeCatalog` is a global, read-only barcode→name reference shipped with the app (not tenant-scoped); seed via `uv run manage.py import_barcode_catalog products.csv`. Exposed at `GET /api/v1/barcode-lookup/?barcode=...` for product-create autofill.
 - `core/` — settings, project URLs, server-rendered admin pages (`AdminLoginView`, `DashboardView`, etc.), and `BaseModel` (string ObjectId PKs, `created_on`/`updated_on`/`actor`).
 - `api/v1/` — all SPA endpoints under `/api/v1/`. One `*_api.py` module per resource; URLs assembled in `api/v1/urls.py`. Cross-cutting helpers live in `_tenant.py`.
 - Business logic that touches multiple models lives in `<app>/services.py` (`sale/services.py::create_sale`, `stock/services.py::record_movement`) — keep views thin and call services.
@@ -75,6 +75,10 @@ Money fields are integers (IDR has no decimals): `subtotal`, `tendered`, `change
 - Feature-first layout under `src/features/<feature>/` (`api.ts`, `hooks.ts`, `types.ts`, `components/`). Don't add API calls outside that boundary.
 - Shared fetch helper: `src/lib/api.ts` — reads `localStorage.token` and sets `Authorization: Token …`. **Cashier endpoints use a different token header** (`CashierToken`); the cashier feature wraps `fetch` separately rather than going through `api()`. Check `features/cashier-auth/api.ts` before adding cashier routes.
 - Dev proxy: `/api` → `http://localhost:8000` (see `vite.config.ts`). `VITE_API_URL` overrides the base.
+
+### Mobile (`mobile/`)
+
+Flutter Android-tablet client (Riverpod + go_router + dio). Feature-parity target with `frontend/`. Separate toolchain — see `mobile/README.md` for setup. Shares backend; same two-token auth model (admin `Token` / cashier `CashierToken`). Emulator hits backend at `http://10.0.2.2:8000`.
 
 ### Tests
 

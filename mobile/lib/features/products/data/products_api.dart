@@ -53,6 +53,24 @@ class ProductsApi {
       throw ApiError.fromDio(e);
     }
   }
+
+  Future<String?> lookupBarcode(
+    String barcode, {
+    CancelToken? cancelToken,
+  }) async {
+    try {
+      final res = await _dio.get<Map<String, dynamic>>(
+        '/barcode-lookup/',
+        queryParameters: <String, dynamic>{'barcode': barcode},
+        cancelToken: cancelToken,
+      );
+      return res.data?['name'] as String?;
+    } on DioException catch (e) {
+      final status = e.response?.statusCode;
+      if (status == 404 || status == 400) return null;
+      throw ApiError.fromDio(e);
+    }
+  }
 }
 
 final productsApiProvider = Provider<ProductsApi>((ref) {
