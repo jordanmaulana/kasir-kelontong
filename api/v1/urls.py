@@ -4,6 +4,7 @@ from api.v1 import (
     auth_api,
     cashier_auth_api,
     cashiers_api,
+    catalog_api,
     payments_api,
     products_api,
     sales_api,
@@ -52,6 +53,7 @@ urlpatterns = [
         cashiers_api.CashierImpersonateView.as_view(),
         name="api-v1-cashier-impersonate",
     ),
+    path("barcode-lookup/", catalog_api.barcode_lookup, name="api-v1-barcode-lookup"),
     path("products/", products_api.ProductsView.as_view(), name="api-v1-products"),
     path(
         "products/<str:product_id>/",

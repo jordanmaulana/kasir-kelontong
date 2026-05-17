@@ -6,6 +6,9 @@ from django.views.generic import RedirectView
 from core.views import (
     AdminLoginView,
     CashiersView,
+    CatalogCreateView,
+    CatalogEditView,
+    CatalogView,
     DashboardView,
     StoresView,
     UsersView,
@@ -19,6 +22,9 @@ urlpatterns = [
     path("stores/", StoresView.as_view(), name="stores"),
     path("cashiers/", CashiersView.as_view(), name="cashiers"),
     path("users/", UsersView.as_view(), name="users"),
+    path("catalog/", CatalogView.as_view(), name="catalog"),
+    path("catalog/new/", CatalogCreateView.as_view(), name="catalog_new"),
+    path("catalog/<str:barcode>/edit/", CatalogEditView.as_view(), name="catalog_edit"),
     path("api/v1/", include("api.v1.urls")),
     path("", RedirectView.as_view(url="/dashboard/", permanent=False), name="home"),
 ]

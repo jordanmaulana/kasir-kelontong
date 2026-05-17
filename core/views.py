@@ -1,12 +1,16 @@
+from django.contrib import messages
 from django.contrib.auth.decorators import user_passes_test
 from django.contrib.auth.models import User
 from django.contrib.auth.views import LoginView
 from django.core.paginator import Paginator
-from django.shortcuts import render
+from django.db.models import Q
+from django.shortcuts import get_object_or_404, redirect, render
 from django.utils.decorators import method_decorator
 from django.views import View
 
 from cashier.models import Cashier
+from catalog.forms import BarcodeCatalogForm
+from catalog.models import BarcodeCatalog
 from store.models import Store
 from tenant.models import Tenant
 
@@ -56,3 +60,47 @@ class UsersView(SuperuserRequiredMixin, View):
         paginator = Paginator(qs, 25)
         page = paginator.get_page(request.GET.get("page"))
         return render(request, "users.html", {"page": page})
+
+
+class CatalogView(SuperuserRequiredMixin, View):
+    def get(self, request):
+        q = (request.GET.get("q") or "").strip()
+        qs = BarcodeCatalog.objects.all().order_by("barcode")
+        if q:
+            qs = qs.filter(Q(barcode__icontains=q) | Q(name__icontains=q))
+        page = Paginator(qs, 25).get_page(request.GET.get("page"))
+        return render(request, "catalog.html", {"page": page, "q": q})
+
+
+class CatalogCreateView(SuperuserRequiredMixin, View):
+    def get(self, request):
+        return render(
+            request, "catalog_form.html", {"form": BarcodeCatalogForm(), "mode": "create"}
+        )
+
+    def post(self, request):
+        form = BarcodeCatalogForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Catalog entry created.")
+            return redirect("catalog")
+        return render(request, "catalog_form.html", {"form": form, "mode": "create"})
+
+
+class CatalogEditView(SuperuserRequiredMixin, View):
+    def get(self, request, barcode):
+        obj = get_object_or_404(BarcodeCatalog, pk=barcode)
+        return render(
+            request,
+            "catalog_form.html",
+            {"form": BarcodeCatalogForm(instance=obj), "mode": "edit", "obj": obj},
+        )
+
+    def post(self, request, barcode):
+        obj = get_object_or_404(BarcodeCatalog, pk=barcode)
+        form = BarcodeCatalogForm(request.POST, instance=obj)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Catalog entry updated.")
+            return redirect("catalog")
+        return render(request, "catalog_form.html", {"form": form, "mode": "edit", "obj": obj})

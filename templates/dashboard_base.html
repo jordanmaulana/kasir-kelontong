@@ -31,6 +31,10 @@
                class="rounded px-3 py-2 transition {% if current == 'users' %}bg-blue-500/15 text-white border-l-2 border-blue-400 -ml-px pl-2.5{% else %}text-slate-300 hover:bg-white/5{% endif %}">
               Users
             </a>
+            <a href="{% url 'catalog' %}"
+               class="rounded px-3 py-2 transition {% if current == 'catalog' or current == 'catalog_new' or current == 'catalog_edit' %}bg-blue-500/15 text-white border-l-2 border-blue-400 -ml-px pl-2.5{% else %}text-slate-300 hover:bg-white/5{% endif %}">
+              Catalog
+            </a>
           </nav>
         </div>
         <div class="flex flex-col gap-3 border-t border-white/10 px-4 py-4 text-xs">

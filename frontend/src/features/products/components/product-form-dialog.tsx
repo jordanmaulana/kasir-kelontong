@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { lookupBarcode } from "@/features/products/api";
 import {
   useCreateProduct,
   useUpdateProduct,
@@ -22,6 +23,8 @@ import {
 import type { Product } from "@/features/products/types";
 import { useStores } from "@/features/stores/hooks";
 import { ApiError } from "@/lib/api";
+
+const BARCODE_RE = /^[A-Za-z0-9-]{1,64}$/;
 
 const schema = z
   .object({
@@ -155,7 +158,8 @@ export function ProductFormDialog({ open, onOpenChange, product }: Props) {
     setFocus,
     setValue,
     watch,
-    formState: { errors },
+    getValues,
+    formState: { errors, dirtyFields },
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: EMPTY_DEFAULTS,
@@ -164,6 +168,8 @@ export function ProductFormDialog({ open, onOpenChange, product }: Props) {
   const hasBundle = watch("has_bundle");
   const isWeighted = watch("is_weighted");
   const initialStoreId = watch("initial_store_id");
+  const barcodeValue = watch("barcode");
+  const nameDirty = !!dirtyFields.name;
 
   useEffect(() => {
     if (!open) return;
@@ -190,6 +196,30 @@ export function ProductFormDialog({ open, onOpenChange, product }: Props) {
       setValue("initial_store_id", onlyStore.id);
     }
   }, [open, isEdit, onlyStore, initialStoreId, setValue]);
+
+  useEffect(() => {
+    if (!open || isEdit) return;
+    if (nameDirty) return;
+    const barcode = (barcodeValue ?? "").trim();
+    if (!BARCODE_RE.test(barcode)) return;
+
+    const controller = new AbortController();
+    const timer = window.setTimeout(async () => {
+      try {
+        const hit = await lookupBarcode(barcode, controller.signal);
+        if (!hit) return;
+        if (getValues("name").trim()) return;
+        setValue("name", hit.name, { shouldDirty: false });
+      } catch {
+        // silent — autofill is best-effort
+      }
+    }, 300);
+
+    return () => {
+      window.clearTimeout(timer);
+      controller.abort();
+    };
+  }, [open, isEdit, nameDirty, barcodeValue, getValues, setValue]);
 
   const onSubmit = (values: FormValues) => {
     const baseBody = {
