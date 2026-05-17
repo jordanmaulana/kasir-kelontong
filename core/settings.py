@@ -7,14 +7,11 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 load_dotenv(BASE_DIR / ".env", override=True)
 
-SECRET_KEY = os.environ.get(
-    "SECRET_KEY",
-    "django-insecure-CHANGE-ME-IN-PROD",
-)
+SECRET_KEY = os.environ.get("SECRET_KEY") or "django-insecure-CHANGE-ME-IN-PROD"
 
-DEBUG = os.environ.get("DEBUG", "True").lower() == "true"
+DEBUG = os.environ.get("DEBUG", "False").lower() == "true"
 
-if not DEBUG and SECRET_KEY.startswith("django-insecure-"):
+if not DEBUG and (not SECRET_KEY or SECRET_KEY.startswith("django-insecure-")):
     raise RuntimeError("SECRET_KEY must be set in production")
 
 ALLOWED_HOSTS = [
