@@ -28,7 +28,7 @@ class Command(BaseCommand):
             defaults={"email": "demo@example.com"},
         )
         if user_created:
-            user.set_password("demo123")
+            user.set_password("demo1234")
             user.save()
 
         Profile.objects.get_or_create(user=user, defaults={"onboarded": True})

@@ -40,7 +40,7 @@ make web     # frontend on :5173 (proxies /api → :8000)
 
 ### Demo credentials (development only — never run `create_demo` in production)
 
-- Admin: `demo` / `demo123` → http://localhost:5173/login
+- Admin: `demo` / `demo1234` → http://localhost:5173/login
 - Cashier: store code `DEMO`, PIN `1234` → http://localhost:5173/cashier
 
 ## Configuration

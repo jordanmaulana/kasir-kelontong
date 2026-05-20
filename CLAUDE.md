@@ -26,7 +26,7 @@ Python deps managed by **uv**, frontend by **pnpm**. Most workflows go through t
 | Run all backend tests | `uv run manage.py test` |
 | Run one test module | `uv run manage.py test api.v1.tests.test_sales` |
 | Run one test | `uv run manage.py test api.v1.tests.test_sales.SalesCreateTests.test_xxx` |
-| Seed demo data | `uv run manage.py create_demo` (user `demo`/`demo123`, store `DEMO`, cashier PIN `1234`) |
+| Seed demo data | `uv run manage.py create_demo` (user `demo`/`demo1234`, store `DEMO`, cashier PIN `1234`) |
 | Docker stack | `make dock` (uses `.env.docker`) |
 
 DB selection: `core/settings.py` uses SQLite when `POSTGRES_HOST` is empty, Postgres otherwise. Local dev defaults to SQLite (`db.sqlite3`).
