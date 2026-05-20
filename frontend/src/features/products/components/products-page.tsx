@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Money } from "@/components/ui/money";
 import { PageTitle } from "@/components/ui/page-title";
+import { Pagination } from "@/components/ui/pagination";
 import {
   Table,
   TableBody,
@@ -17,20 +18,51 @@ import { DeleteProductDialog } from "@/features/products/components/delete-produ
 import { ProductFormDialog } from "@/features/products/components/product-form-dialog";
 import { useProducts } from "@/features/products/hooks";
 import type { Product } from "@/features/products/types";
+import { Route } from "@/routes/dashboard.products";
+
+const PAGE_SIZE = 20;
 
 export function ProductsPage() {
-  const [search, setSearch] = useState("");
-  const [debounced, setDebounced] = useState("");
-  const { data: products, isLoading, isError, error } = useProducts(debounced);
+  const { page, q } = Route.useSearch();
+  const navigate = Route.useNavigate();
+  const [searchInput, setSearchInput] = useState(q);
+  const [debounced, setDebounced] = useState(q);
+  const { data, isLoading, isError, error } = useProducts({
+    q: debounced,
+    page,
+    pageSize: PAGE_SIZE,
+  });
+  const products = data?.results;
   const [formOpen, setFormOpen] = useState(false);
   const [editProduct, setEditProduct] = useState<Product | undefined>();
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleteProduct, setDeleteProduct] = useState<Product | null>(null);
 
   useEffect(() => {
-    const t = setTimeout(() => setDebounced(search), 250);
+    const t = setTimeout(() => setDebounced(searchInput), 250);
     return () => clearTimeout(t);
-  }, [search]);
+  }, [searchInput]);
+
+  useEffect(() => {
+    if (debounced === q) return;
+    navigate({
+      search: (prev) => ({ ...prev, q: debounced, page: 1 }),
+      replace: true,
+    });
+  }, [debounced, q, navigate]);
+
+  useEffect(() => {
+    if (data && page > data.total_pages) {
+      navigate({
+        search: (prev) => ({ ...prev, page: data.total_pages }),
+        replace: true,
+      });
+    }
+  }, [data, page, navigate]);
+
+  const goToPage = (next: number) => {
+    navigate({ search: (prev) => ({ ...prev, page: next }) });
+  };
 
   const openCreate = () => {
     setEditProduct(undefined);
@@ -66,8 +98,8 @@ export function ProductsPage() {
         <Input
           type="search"
           placeholder="Cari nama atau barcode…"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          value={searchInput}
+          onChange={(e) => setSearchInput(e.target.value)}
           className="pl-12"
         />
       </div>
@@ -90,6 +122,7 @@ export function ProductsPage() {
             <EmptyState onCreate={openCreate} />
           )
         ) : (
+          <>
           <Table>
             <TableHeader>
               <TableRow>
@@ -142,6 +175,14 @@ export function ProductsPage() {
               ))}
             </TableBody>
           </Table>
+          {data && (
+            <Pagination
+              page={data.page}
+              totalPages={data.total_pages}
+              onPageChange={goToPage}
+            />
+          )}
+          </>
         )}
       </div>
 

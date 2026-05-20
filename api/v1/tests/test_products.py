@@ -37,7 +37,10 @@ class ProductsListCreateTests(TestCase):
     def test_list_empty(self):
         res = self.client.get(self.url)
         self.assertEqual(res.status_code, status.HTTP_200_OK)
-        self.assertEqual(res.data, [])
+        self.assertEqual(res.data["results"], [])
+        self.assertEqual(res.data["count"], 0)
+        self.assertEqual(res.data["page"], 1)
+        self.assertEqual(res.data["total_pages"], 1)
 
     def test_list_returns_only_own_tenant_products(self):
         Product.objects.create(tenant=self.tenant, name="Indomie", sell_price=3500)
@@ -45,8 +48,9 @@ class ProductsListCreateTests(TestCase):
         Product.objects.create(tenant=other_tenant, name="Other", sell_price=1000)
         res = self.client.get(self.url)
         self.assertEqual(res.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(res.data), 1)
-        self.assertEqual(res.data[0]["name"], "Indomie")
+        self.assertEqual(res.data["count"], 1)
+        self.assertEqual(len(res.data["results"]), 1)
+        self.assertEqual(res.data["results"][0]["name"], "Indomie")
 
     def test_create_product_minimal(self):
         res = self.client.post(self.url, {"name": "Gula 1kg", "sell_price": 15000}, format="json")
@@ -131,8 +135,8 @@ class ProductsListCreateTests(TestCase):
         Product.objects.create(tenant=self.tenant, name="Sarimi", barcode="222", sell_price=3000)
         res = self.client.get(self.url + "?q=indomie")
         self.assertEqual(res.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(res.data), 1)
-        self.assertEqual(res.data[0]["name"], "Indomie Goreng")
+        self.assertEqual(len(res.data["results"]), 1)
+        self.assertEqual(res.data["results"][0]["name"], "Indomie Goreng")
 
     def test_search_by_barcode_substring(self):
         Product.objects.create(
@@ -141,12 +145,42 @@ class ProductsListCreateTests(TestCase):
         Product.objects.create(tenant=self.tenant, name="B", sell_price=200)
         res = self.client.get(self.url + "?q=88101")
         self.assertEqual(res.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(res.data), 1)
-        self.assertEqual(res.data[0]["name"], "A")
+        self.assertEqual(len(res.data["results"]), 1)
+        self.assertEqual(res.data["results"][0]["name"], "A")
 
     def test_unauthenticated_401(self):
         res = APIClient().get(self.url)
         self.assertEqual(res.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_pagination_page_and_page_size(self):
+        for i in range(25):
+            Product.objects.create(tenant=self.tenant, name=f"Item {i:02d}", sell_price=100)
+        res = self.client.get(self.url + "?page=1&page_size=10")
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertEqual(res.data["count"], 25)
+        self.assertEqual(res.data["page"], 1)
+        self.assertEqual(res.data["page_size"], 10)
+        self.assertEqual(res.data["total_pages"], 3)
+        self.assertEqual(len(res.data["results"]), 10)
+        self.assertEqual(res.data["results"][0]["name"], "Item 00")
+
+        res2 = self.client.get(self.url + "?page=3&page_size=10")
+        self.assertEqual(res2.data["page"], 3)
+        self.assertEqual(len(res2.data["results"]), 5)
+        self.assertEqual(res2.data["results"][-1]["name"], "Item 24")
+
+    def test_pagination_clamps_out_of_range_page(self):
+        Product.objects.create(tenant=self.tenant, name="One", sell_price=100)
+        res = self.client.get(self.url + "?page=9999&page_size=10")
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertEqual(res.data["page"], 1)
+        self.assertEqual(len(res.data["results"]), 1)
+
+    def test_pagination_invalid_params_use_defaults(self):
+        res = self.client.get(self.url + "?page=abc&page_size=xyz")
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertEqual(res.data["page"], 1)
+        self.assertEqual(res.data["page_size"], 20)
 
     def test_create_with_bundle_fields(self):
         res = self.client.post(

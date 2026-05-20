@@ -12,6 +12,14 @@ export interface Product {
   updated_on: string;
 }
 
+export interface PaginatedProducts {
+  results: Product[];
+  count: number;
+  page: number;
+  page_size: number;
+  total_pages: number;
+}
+
 export interface ProductInput {
   barcode?: string | null;
   name: string;

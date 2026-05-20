@@ -1,5 +1,5 @@
 import { api, ApiError } from "@/lib/api";
-import type { Product, ProductInput } from "@/features/products/types";
+import type { PaginatedProducts, Product, ProductInput } from "@/features/products/types";
 
 export interface BarcodeLookup {
   barcode: string;
@@ -23,9 +23,17 @@ export async function lookupBarcode(
   }
 }
 
-export function listProducts(q?: string): Promise<Product[]> {
-  const path = q && q.trim() ? `/products/?q=${encodeURIComponent(q.trim())}` : "/products/";
-  return api<Product[]>(path);
+export function listProducts(params: {
+  q?: string;
+  page?: number;
+  pageSize?: number;
+} = {}): Promise<PaginatedProducts> {
+  const search = new URLSearchParams();
+  const q = params.q?.trim();
+  if (q) search.set("q", q);
+  search.set("page", String(params.page ?? 1));
+  search.set("page_size", String(params.pageSize ?? 20));
+  return api<PaginatedProducts>(`/products/?${search.toString()}`);
 }
 
 export function createProduct(body: ProductInput): Promise<Product> {

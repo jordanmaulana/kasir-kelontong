@@ -1,3 +1,5 @@
+from math import ceil
+
 from django.db import transaction
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
@@ -25,7 +27,31 @@ class ProductsView(APIView):
         q = request.query_params.get("q", "").strip()
         if q:
             qs = qs.filter(Q(name__icontains=q) | Q(barcode__icontains=q))
-        return Response(ProductSerializer(qs, many=True).data)
+
+        try:
+            page = max(1, int(request.query_params.get("page", 1)))
+        except (TypeError, ValueError):
+            page = 1
+        try:
+            page_size = int(request.query_params.get("page_size", 20))
+        except (TypeError, ValueError):
+            page_size = 20
+        page_size = max(1, min(100, page_size))
+
+        count = qs.count()
+        total_pages = max(1, ceil(count / page_size))
+        if count > 0 and page > total_pages:
+            page = total_pages
+        offset = (page - 1) * page_size
+        items = qs[offset:offset + page_size]
+
+        return Response({
+            "results": ProductSerializer(items, many=True).data,
+            "count": count,
+            "page": page,
+            "page_size": page_size,
+            "total_pages": total_pages,
+        })
 
     def post(self, request):
         tenant, err = _require_tenant(request.user)
