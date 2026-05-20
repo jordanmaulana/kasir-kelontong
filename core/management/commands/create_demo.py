@@ -24,7 +24,7 @@ class Command(BaseCommand):
     @transaction.atomic
     def handle(self, *args, **options):
         user, user_created = User.objects.get_or_create(
-            username="demo",
+            username="demo@example.com",
             defaults={"email": "demo@example.com"},
         )
         if user_created:
