@@ -65,12 +65,12 @@ export function MovementsTab({ storeId }: Props) {
   });
 
   const { data: products } = useProducts(
-    !productFilter && productQuery.trim() ? productQuery : undefined,
+    !productFilter && productQuery.trim() ? { q: productQuery, pageSize: 6 } : undefined,
   );
 
   const candidates = useMemo(() => {
     if (productFilter || !productQuery.trim()) return [];
-    return (products ?? []).slice(0, 6);
+    return (products?.results ?? []).slice(0, 6);
   }, [products, productQuery, productFilter]);
 
   const empty = !movements || movements.length === 0;

@@ -38,7 +38,7 @@ export function ReceivingTab({ storeId }: Props) {
   const [lines, setLines] = useState<DraftLine[]>([]);
   const searchRef = useRef<HTMLInputElement>(null);
 
-  const { data: products } = useProducts(search.trim() ? search : undefined);
+  const { data: products } = useProducts(search.trim() ? { q: search, pageSize: 20 } : undefined);
   const submit = useReceiving(storeId);
   const { data: recentMovements } = useMovements(storeId, {
     reason: "receiving",
@@ -48,7 +48,7 @@ export function ReceivingTab({ storeId }: Props) {
   const candidates = useMemo(() => {
     if (!search.trim()) return [];
     const inCart = new Set(lines.map((l) => l.product_id));
-    return (products ?? []).filter((p) => !inCart.has(p.id)).slice(0, 6);
+    return (products?.results ?? []).filter((p) => !inCart.has(p.id)).slice(0, 6);
   }, [products, search, lines]);
 
   const addLine = (product: Product) => {
