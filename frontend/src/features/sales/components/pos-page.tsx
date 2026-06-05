@@ -247,18 +247,18 @@ export function PosPage() {
   if (!session) return null;
 
   return (
-    <CashierShell maxWidth="6xl">
-      <div className="grid gap-6 lg:grid-cols-[1fr_400px]">
-        <section className="space-y-5">
-          <div className="relative">
-            <Search className="pointer-events-none absolute left-5 top-1/2 size-6 -translate-y-1/2 text-muted-foreground" />
+    <CashierShell maxWidth="6xl" fill>
+      <div className="grid gap-4 md:h-full md:min-h-0 lg:grid-cols-[1fr_400px]">
+        <section className="flex min-h-0 flex-col gap-3">
+          <div className="relative shrink-0">
+            <Search className="pointer-events-none absolute left-4 top-1/2 size-5 -translate-y-1/2 text-muted-foreground" />
             <Input
               ref={searchRef}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               onKeyDown={onSearchKeyDown}
               placeholder="Scan barcode atau ketik nama produk…"
-              className="h-16 pl-14 pr-4 text-xl"
+              className="h-12 pl-12 pr-4 text-lg"
               autoFocus
               inputMode="numeric"
             />
@@ -322,14 +322,14 @@ export function PosPage() {
           </div>
 
           {lines.length === 0 ? (
-            <div className="rounded-lg border-2 border-dashed border-border bg-card/60 p-12 text-center">
+            <div className="rounded-lg border-2 border-dashed border-border bg-card/60 p-6 text-center">
               <h3 className="text-xl font-bold text-foreground">Keranjang kosong</h3>
               <p className="mt-2 text-base text-muted-foreground">
                 Scan barcode atau ketik nama produk untuk memulai transaksi.
               </p>
             </div>
           ) : (
-            <ul className="space-y-3">
+            <ul className="min-h-0 flex-1 space-y-3 overflow-y-auto md:pr-1">
               {lines.map((line) => {
                 const key = lineKey(line);
                 const liveStock =
@@ -345,9 +345,9 @@ export function PosPage() {
                 return (
                   <li
                     key={key}
-                    className="rounded-lg border-2 border-border bg-card p-5 shadow-sm transition-colors"
+                    className="rounded-lg border-2 border-border bg-card p-3 shadow-sm transition-colors"
                   >
-                    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-lg font-bold text-foreground">
                           {line.product_name}
@@ -434,9 +434,9 @@ export function PosPage() {
           )}
         </section>
 
-        <aside className="lg:sticky lg:top-20 lg:self-start">
-          <div className="rounded-lg border border-border bg-card p-6 shadow-md">
-            <div className="border-b border-border pb-5">
+        <aside className="lg:h-full lg:min-h-0">
+          <div className="rounded-lg border border-border bg-card p-4 shadow-md lg:flex lg:h-full lg:flex-col lg:overflow-hidden">
+            <div className="border-b border-border pb-3 lg:shrink-0">
               <p className="text-sm font-semibold uppercase tracking-[0.16em] text-muted-foreground">
                 Total Belanja
               </p>
@@ -448,7 +448,8 @@ export function PosPage() {
               </p>
             </div>
 
-            <div className="mt-5 space-y-3">
+            <div className="lg:min-h-0 lg:flex-1 lg:overflow-y-auto">
+            <div className="mt-4 space-y-3">
               <Label htmlFor="tendered">Uang dari Pembeli</Label>
               <Input
                 id="tendered"
@@ -458,16 +459,16 @@ export function PosPage() {
                 value={tendered === 0 ? "" : tendered}
                 onChange={(e) => setTendered(Number(e.target.value || 0))}
                 placeholder="0"
-                className="h-14 text-right font-mono text-2xl"
+                className="h-12 text-right font-mono text-xl"
               />
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-2">
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-3">
                 {DENOMINATIONS.map((preset) => (
                   <Button
                     key={preset}
                     size="default"
                     variant="outline"
                     type="button"
-                    className="h-12 px-3 text-base"
+                    className="h-10 px-3 text-base"
                     onClick={() => setTendered((t) => t + preset)}
                   >
                     + {idr.format(preset)}
@@ -477,7 +478,7 @@ export function PosPage() {
                   size="default"
                   variant="ghost"
                   type="button"
-                  className="h-12 col-span-2 sm:col-span-3 lg:col-span-2 px-3 text-base text-muted-foreground hover:text-foreground"
+                  className="h-10 col-span-2 sm:col-span-3 lg:col-span-3 px-3 text-base text-muted-foreground hover:text-foreground"
                   onClick={() => setTendered(subtotal)}
                   disabled={subtotal === 0}
                 >
@@ -486,7 +487,7 @@ export function PosPage() {
               </div>
             </div>
 
-            <div className="mt-5 rounded-md bg-muted p-4">
+            <div className="mt-4 rounded-md bg-muted p-3">
               <div className="flex items-baseline justify-between gap-3">
                 <span className="text-base font-semibold text-muted-foreground">
                   Kembalian
@@ -508,24 +509,28 @@ export function PosPage() {
               )}
             </div>
 
-            <Button
-              variant="accent"
-              size="xl"
-              className="mt-5 w-full"
-              disabled={!canSubmit}
-              onClick={onSubmit}
-            >
-              {create.isPending ? "Memproses…" : "Bayar Sekarang"}
-            </Button>
-            <Button
-              variant="outline"
-              size="default"
-              className="mt-3 w-full"
-              disabled={lines.length === 0 || create.isPending}
-              onClick={reset}
-            >
-              Kosongkan Keranjang
-            </Button>
+            </div>
+
+            <div className="mt-4 lg:mt-0 lg:shrink-0 lg:pt-4">
+              <Button
+                variant="accent"
+                size="xl"
+                className="w-full"
+                disabled={!canSubmit}
+                onClick={onSubmit}
+              >
+                {create.isPending ? "Memproses…" : "Bayar Sekarang"}
+              </Button>
+              <Button
+                variant="outline"
+                size="default"
+                className="mt-2 w-full"
+                disabled={lines.length === 0 || create.isPending}
+                onClick={reset}
+              >
+                Kosongkan Keranjang
+              </Button>
+            </div>
           </div>
         </aside>
       </div>

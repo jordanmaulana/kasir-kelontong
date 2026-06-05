@@ -11,6 +11,12 @@ interface CashierShellProps {
   children: React.ReactNode;
   /** Max width of the inner content. Defaults to 6xl. */
   maxWidth?: "sm" | "md" | "lg" | "xl" | "2xl" | "3xl" | "4xl" | "5xl" | "6xl" | "7xl" | "full";
+  /**
+   * Lock the shell to the viewport height on tablet/desktop (md+) so the page
+   * fits without scrolling — children manage their own internal scroll. Phones
+   * keep the normal scrolling layout with the bottom nav.
+   */
+  fill?: boolean;
 }
 
 const TABS = [
@@ -33,7 +39,7 @@ const maxWMap: Record<NonNullable<CashierShellProps["maxWidth"]>, string> = {
   full: "max-w-none",
 };
 
-export function CashierShell({ children, maxWidth = "6xl" }: CashierShellProps) {
+export function CashierShell({ children, maxWidth = "6xl", fill = false }: CashierShellProps) {
   const [session] = useAtom(cashierSessionAtom);
   const logout = useCashierLogout();
   const navigate = useNavigate();
@@ -48,7 +54,12 @@ export function CashierShell({ children, maxWidth = "6xl" }: CashierShellProps) 
   };
 
   return (
-    <div className="flex min-h-screen flex-col bg-background pb-24 md:pb-0">
+    <div
+      className={cn(
+        "flex min-h-screen flex-col bg-background pb-24 md:pb-0",
+        fill && "md:h-dvh md:min-h-0 md:overflow-hidden",
+      )}
+    >
       <header className="sticky top-0 z-30 border-b border-border bg-card/95 backdrop-blur">
         <div className={cn("mx-auto flex h-16 items-center justify-between gap-3 px-4 sm:px-6", maxWMap[maxWidth])}>
           <Link to="/cashier/home" className="flex items-center gap-3 min-w-0">
@@ -75,7 +86,15 @@ export function CashierShell({ children, maxWidth = "6xl" }: CashierShellProps) 
         </div>
       </header>
 
-      <main className={cn("mx-auto w-full flex-1 px-4 py-6 sm:px-6 sm:py-8", maxWMap[maxWidth])}>{children}</main>
+      <main
+        className={cn(
+          "mx-auto w-full flex-1 px-4 py-6 sm:px-6 sm:py-8",
+          fill && "md:min-h-0 md:overflow-hidden md:py-4 sm:md:py-5",
+          maxWMap[maxWidth],
+        )}
+      >
+        {children}
+      </main>
 
       <nav
         aria-label="Navigasi kasir"
