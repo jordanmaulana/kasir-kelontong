@@ -26,6 +26,11 @@ import { ApiError } from "@/lib/api";
 
 const BARCODE_RE = /^[A-Za-z0-9-]{1,64}$/;
 
+// react-hook-form's `valueAsNumber` turns an empty input into NaN, which zod's
+// `.optional()` rejects. Normalize empty → undefined so optional number fields
+// can genuinely be left blank.
+const optionalNumber = (v: string) => (v.trim() === "" ? undefined : Number(v));
+
 const schema = z
   .object({
     barcode: z
@@ -64,13 +69,9 @@ const schema = z
     }
     const hasInitialStore = !!(data.initial_store_id && data.initial_store_id.trim());
     const hasInitialQty = data.initial_qty != null && !Number.isNaN(data.initial_qty);
-    if (hasInitialStore && !hasInitialQty) {
-      ctx.addIssue({
-        code: "custom",
-        path: ["initial_qty"],
-        message: "Isi jumlah stok awal",
-      });
-    }
+    // Initial stock is fully optional: an empty qty simply records no opening stock,
+    // even when a store is selected (single-store forms auto-select one). Only flag
+    // the inverse — a qty entered with no store to apply it to.
     if (hasInitialQty && !hasInitialStore) {
       ctx.addIssue({
         code: "custom",
@@ -430,7 +431,7 @@ export function ProductFormDialog({ open, onOpenChange, product }: Props) {
                       placeholder="20"
                       className="text-right font-mono text-lg"
                       aria-invalid={!!errors.bundle_qty}
-                      {...register("bundle_qty", { valueAsNumber: true })}
+                      {...register("bundle_qty", { setValueAs: optionalNumber })}
                     />
                     {errors.bundle_qty && (
                       <p className="mt-2 text-sm font-semibold text-destructive">
@@ -449,7 +450,7 @@ export function ProductFormDialog({ open, onOpenChange, product }: Props) {
                       placeholder="0"
                       className="text-right font-mono text-lg"
                       aria-invalid={!!errors.bundle_price}
-                      {...register("bundle_price", { valueAsNumber: true })}
+                      {...register("bundle_price", { setValueAs: optionalNumber })}
                     />
                     {errors.bundle_price && (
                       <p className="mt-2 text-sm font-semibold text-destructive">
@@ -512,7 +513,7 @@ export function ProductFormDialog({ open, onOpenChange, product }: Props) {
                   placeholder="0"
                   className="text-right font-mono text-lg"
                   aria-invalid={!!errors.initial_qty}
-                  {...register("initial_qty", { valueAsNumber: true })}
+                  {...register("initial_qty", { setValueAs: optionalNumber })}
                 />
                 {errors.initial_qty && (
                   <p className="mt-2 text-sm font-semibold text-destructive">

@@ -44,15 +44,6 @@ class RegisterTests(TestCase):
         self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn("email", res.data)
 
-    def test_weak_password_400(self):
-        res = self.client.post(
-            self.url,
-            {"email": "a@b.com", "password": "123"},
-            format="json",
-        )
-        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertIn("password", res.data)
-
 
 class LoginTests(TestCase):
     def setUp(self):

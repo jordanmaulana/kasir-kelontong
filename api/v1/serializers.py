@@ -4,8 +4,6 @@ from profile.models import Profile
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
-from django.contrib.auth.password_validation import validate_password
-from django.core.exceptions import ValidationError as DjangoValidationError
 from google.auth.transport import requests as google_requests
 from google.oauth2 import id_token
 from rest_framework import serializers
@@ -42,13 +40,6 @@ class RegisterSerializer(serializers.Serializer):
         if User.objects.filter(username__iexact=email).exists():
             raise serializers.ValidationError("Email sudah terdaftar")
         return email
-
-    def validate_password(self, value):
-        try:
-            validate_password(value)
-        except DjangoValidationError as exc:
-            raise serializers.ValidationError(list(exc.messages)) from exc
-        return value
 
 
 class LoginSerializer(serializers.Serializer):

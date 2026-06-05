@@ -43,15 +43,17 @@ class ProductsView(APIView):
         if count > 0 and page > total_pages:
             page = total_pages
         offset = (page - 1) * page_size
-        items = qs[offset:offset + page_size]
+        items = qs[offset : offset + page_size]
 
-        return Response({
-            "results": ProductSerializer(items, many=True).data,
-            "count": count,
-            "page": page,
-            "page_size": page_size,
-            "total_pages": total_pages,
-        })
+        return Response(
+            {
+                "results": ProductSerializer(items, many=True).data,
+                "count": count,
+                "page": page,
+                "page_size": page_size,
+                "total_pages": total_pages,
+            }
+        )
 
     def post(self, request):
         tenant, err = _require_tenant(request.user)
