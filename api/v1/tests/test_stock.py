@@ -9,7 +9,7 @@ from rest_framework.test import APIClient
 
 from product.models import Product
 from stock.models import StockMovement, StockReason, StoreStock
-from stock.services import OutOfStockError, record_movement
+from stock.services import record_movement
 from store.models import Store
 from tenant.models import Tenant
 
@@ -355,18 +355,18 @@ class ServiceLayerTests(TestCase):
         self.store = Store.objects.create(tenant=self.tenant, name="Toko A", code="JKT01")
         self.product = Product.objects.create(tenant=self.tenant, name="Indomie", sell_price=3500)
 
-    def test_sale_below_zero_raises(self):
-        with self.assertRaises(OutOfStockError):
-            record_movement(
-                store=self.store,
-                product=self.product,
-                delta=-1,
-                reason=StockReason.SALE,
-                actor=self.user,
-            )
-        # rolled back — no movement and no cache row
-        self.assertFalse(StockMovement.objects.filter(store=self.store).exists())
-        self.assertFalse(StoreStock.objects.filter(store=self.store).exists())
+    def test_sale_below_zero_allowed(self):
+        # overselling is allowed — stock simply goes negative
+        record_movement(
+            store=self.store,
+            product=self.product,
+            delta=-1,
+            reason=StockReason.SALE,
+            actor=self.user,
+        )
+        self.assertTrue(StockMovement.objects.filter(store=self.store).exists())
+        s = StoreStock.objects.get(store=self.store, product=self.product)
+        self.assertEqual(s.qty, -1)
 
     def test_cross_tenant_raises(self):
         _, other_tenant, _ = _make_user("z@b.com")

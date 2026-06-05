@@ -36,10 +36,6 @@ function lineKey(l: Pick<CartLine, "product_id" | "is_bundle">): string {
   return `${l.product_id}:${l.is_bundle ? "B" : "S"}`;
 }
 
-function stockNeeded(line: CartLine): number {
-  return line.is_bundle && line.bundle_qty ? line.qty * line.bundle_qty : line.qty;
-}
-
 const DENOMINATIONS = [500, 1000, 2000, 5000, 10000, 20000, 50000, 100000];
 
 const idr = new Intl.NumberFormat("id-ID");
@@ -187,16 +183,6 @@ export function PosPage() {
         return prev;
       }
       const nextUnitPrice = nextIsBundle ? target.bundle_price : target.single_price;
-      const liveStock = stockById.get(target.product_id)?.qty ?? target.available_qty;
-      const needed = nextIsBundle ? target.qty * target.bundle_qty : target.qty;
-      if (needed > liveStock) {
-        toast.error(
-          nextIsBundle
-            ? `Stok tidak cukup untuk ${target.bundle_label ?? "bundel"}`
-            : "Stok tidak cukup",
-        );
-        return prev;
-      }
       return prev.map((l) =>
         lineKey(l) === key
           ? { ...l, is_bundle: nextIsBundle, unit_price: nextUnitPrice }
@@ -229,33 +215,7 @@ export function PosPage() {
   const subtotal = lines.reduce((s, l) => s + Math.round(l.qty * l.unit_price), 0);
   const change = Math.max(0, tendered - subtotal);
 
-  const neededByProduct = useMemo(() => {
-    const map = new Map<string, number>();
-    for (const l of lines) {
-      map.set(l.product_id, (map.get(l.product_id) ?? 0) + stockNeeded(l));
-    }
-    return map;
-  }, [lines]);
-
-  const overProducts = useMemo(() => {
-    const set = new Set<string>();
-    for (const [pid, need] of neededByProduct) {
-      const stockQty =
-        stockById.get(pid)?.qty ??
-        lines.find((l) => l.product_id === pid)?.available_qty ??
-        0;
-      if (need > stockQty) set.add(pid);
-    }
-    return set;
-  }, [neededByProduct, stockById, lines]);
-
-  const hasOverstockedLine = overProducts.size > 0;
-
-  const canSubmit =
-    lines.length > 0 &&
-    !hasOverstockedLine &&
-    tendered >= subtotal &&
-    !create.isPending;
+  const canSubmit = lines.length > 0 && tendered >= subtotal && !create.isPending;
 
   const reset = () => {
     setLines([]);
@@ -374,7 +334,6 @@ export function PosPage() {
                 const key = lineKey(line);
                 const liveStock =
                   stockById.get(line.product_id)?.qty ?? line.available_qty;
-                const overstocked = overProducts.has(line.product_id);
                 const hasBundleConfig =
                   line.bundle_qty != null && line.bundle_price != null;
                 const otherVariantInCart = cartKeys.has(
@@ -386,12 +345,7 @@ export function PosPage() {
                 return (
                   <li
                     key={key}
-                    className={cn(
-                      "rounded-lg border-2 bg-card p-5 shadow-sm transition-colors",
-                      overstocked
-                        ? "border-destructive/60 bg-destructive/5"
-                        : "border-border",
-                    )}
+                    className="rounded-lg border-2 border-border bg-card p-5 shadow-sm transition-colors"
                   >
                     <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                       <div className="min-w-0 flex-1">
@@ -413,11 +367,6 @@ export function PosPage() {
                             isWeighted: line.is_weighted,
                             unitLabel: line.unit_label,
                           })}
-                          {overstocked && (
-                            <span className="ml-2 font-bold text-destructive">
-                              stok kurang
-                            </span>
-                          )}
                         </p>
                         {hasBundleConfig && !otherVariantInCart && (
                           <button

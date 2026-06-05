@@ -2,7 +2,7 @@ from decimal import Decimal
 
 from django.db import transaction
 
-from stock.models import StockMovement, StockReason, StoreStock
+from stock.models import StockMovement, StoreStock
 
 
 class OutOfStockError(Exception):
@@ -30,8 +30,6 @@ def record_movement(
         defaults={"qty": Decimal("0")},
     )
     new_qty = stock.qty + delta
-    if reason == StockReason.SALE and new_qty < 0:
-        raise OutOfStockError(f"{product.name} stok tidak cukup")
     movement = StockMovement.objects.create(
         store=store,
         product=product,

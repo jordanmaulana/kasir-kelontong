@@ -137,7 +137,7 @@ class SaleCreateTests(TestCase):
         deltas = sorted(m.delta for m in sale_movements)
         self.assertEqual(deltas, [-2, -1])
 
-    def test_out_of_stock_blocks_and_rolls_back(self):
+    def test_oversell_allowed_goes_negative(self):
         res = self.client_.post(
             self.url,
             {
@@ -146,12 +146,11 @@ class SaleCreateTests(TestCase):
             },
             format="json",
         )
-        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertIn("stok tidak cukup", res.data["detail"])
-        self.assertEqual(Sale.objects.count(), 0)
-        self.assertEqual(SaleLine.objects.count(), 0)
-        # stock unchanged
-        self.assertEqual(StoreStock.objects.get(store=self.store, product=self.p1).qty, 10)
+        self.assertEqual(res.status_code, status.HTTP_201_CREATED, res.data)
+        self.assertEqual(Sale.objects.count(), 1)
+        self.assertEqual(SaleLine.objects.count(), 1)
+        # stock pushed negative — overselling is allowed
+        self.assertEqual(StoreStock.objects.get(store=self.store, product=self.p1).qty, 10 - 999)
 
     def test_insufficient_tender_400(self):
         res = self.client_.post(
@@ -307,7 +306,7 @@ class SaleBundleTests(TestCase):
         self.assertIn("tidak memiliki bundel", res.data["detail"])
         self.assertEqual(Sale.objects.count(), 0)
 
-    def test_bundle_qty_exceeds_stock_blocks(self):
+    def test_bundle_qty_exceeds_stock_oversells(self):
         res = self.client_.post(
             self.url,
             {
@@ -316,10 +315,12 @@ class SaleBundleTests(TestCase):
             },
             format="json",
         )
-        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertIn("stok tidak cukup", res.data["detail"])
-        self.assertEqual(Sale.objects.count(), 0)
-        self.assertEqual(StoreStock.objects.get(store=self.store, product=self.bundled).qty, 50)
+        self.assertEqual(res.status_code, status.HTTP_201_CREATED, res.data)
+        self.assertEqual(Sale.objects.count(), 1)
+        # 6 bundles × 10 units = 60 units; stock 50 → -10
+        self.assertEqual(
+            StoreStock.objects.get(store=self.store, product=self.bundled).qty, 50 - 60
+        )
 
     def test_same_product_bundle_and_singular(self):
         res = self.client_.post(
@@ -405,10 +406,10 @@ class SaleBundleTests(TestCase):
             },
             format="json",
         )
-        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertIn("stok tidak cukup", res.data["detail"])
-        self.assertEqual(Sale.objects.count(), 0)
-        self.assertEqual(StoreStock.objects.get(store=self.store, product=tiny).qty, 10)
+        self.assertEqual(res.status_code, status.HTTP_201_CREATED, res.data)
+        self.assertEqual(Sale.objects.count(), 1)
+        # 10 (bundle) + 1 (single) = 11 units off a stock of 10 → -1
+        self.assertEqual(StoreStock.objects.get(store=self.store, product=tiny).qty, 10 - 11)
 
     def test_mixed_bundle_and_single_lines(self):
         res = self.client_.post(
@@ -599,7 +600,7 @@ class SaleWeightedTests(TestCase):
         # 0.33 * 99999 = 32999.67 → rounds half-up to 33000
         self.assertEqual(res.data["subtotal"], 33000)
 
-    def test_weighted_out_of_stock_blocked(self):
+    def test_weighted_oversell_allowed_goes_negative(self):
         res = self.client_.post(
             self.url,
             {
@@ -608,5 +609,9 @@ class SaleWeightedTests(TestCase):
             },
             format="json",
         )
-        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertIn("stok tidak cukup", res.data["detail"])
+        self.assertEqual(res.status_code, status.HTTP_201_CREATED, res.data)
+        self.assertEqual(Sale.objects.count(), 1)
+        # 5.00 in stock − 5.01 sold → -0.01
+        self.assertEqual(
+            StoreStock.objects.get(store=self.store, product=self.egg).qty, Decimal("-0.01")
+        )
