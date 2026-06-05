@@ -5,7 +5,8 @@ export interface SaleLineInput {
 }
 
 export interface CreateSaleInput {
-  lines: SaleLineInput[];
+  lines?: SaleLineInput[];
+  amount?: number;
   tendered: number;
 }
 

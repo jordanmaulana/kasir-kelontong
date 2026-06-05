@@ -47,12 +47,14 @@ export function SaleSuccessDialog({ sale, onClose, onNewSale }: Props) {
           </div>
 
           <dl className="space-y-3 text-base">
-            <div className="flex items-baseline justify-between">
-              <dt className="text-muted-foreground">Item</dt>
-              <dd className="font-semibold tabular-nums text-foreground">
-                {sale.lines.length} item{hasWeighted ? " (termasuk timbang)" : ""}
-              </dd>
-            </div>
+            {sale.lines.length > 0 && (
+              <div className="flex items-baseline justify-between">
+                <dt className="text-muted-foreground">Item</dt>
+                <dd className="font-semibold tabular-nums text-foreground">
+                  {sale.lines.length} item{hasWeighted ? " (termasuk timbang)" : ""}
+                </dd>
+              </div>
+            )}
             <div className="flex items-baseline justify-between">
               <dt className="text-muted-foreground">Total bayar</dt>
               <dd>

@@ -233,6 +233,71 @@ class SaleCreateTests(TestCase):
         self.assertEqual(res.status_code, status.HTTP_401_UNAUTHORIZED)
 
 
+class QuickSaleTests(TestCase):
+    def setUp(self):
+        self.user, self.tenant, _ = _make_user("a@b.com")
+        self.store = Store.objects.create(tenant=self.tenant, name="Toko A", code="JKT01")
+        self.p1 = Product.objects.create(
+            tenant=self.tenant, name="Indomie", barcode="111", sell_price=3500
+        )
+        self.cashier = _make_cashier(self.store)
+        self.session = CashierSession.issue(self.cashier)
+        self.client_ = _cashier_client(self.session.token)
+        self.url = reverse("api-v1-cashier-sales-create")
+
+    def test_quick_sale_no_lines_creates_itemless_sale(self):
+        res = self.client_.post(
+            self.url,
+            {"amount": 12000, "tendered": 20000},
+            format="json",
+        )
+        self.assertEqual(res.status_code, status.HTTP_201_CREATED, res.data)
+        self.assertEqual(res.data["subtotal"], 12000)
+        self.assertEqual(res.data["tendered"], 20000)
+        self.assertEqual(res.data["change"], 8000)
+        self.assertEqual(res.data["lines"], [])
+
+        self.assertEqual(Sale.objects.count(), 1)
+        self.assertEqual(SaleLine.objects.count(), 0)
+        self.assertEqual(StockMovement.objects.count(), 0)
+
+    def test_quick_sale_insufficient_tender_400(self):
+        res = self.client_.post(
+            self.url,
+            {"amount": 12000, "tendered": 5000},
+            format="json",
+        )
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(Sale.objects.count(), 0)
+
+    def test_quick_sale_amount_zero_400(self):
+        res = self.client_.post(
+            self.url,
+            {"amount": 0, "tendered": 0},
+            format="json",
+        )
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(Sale.objects.count(), 0)
+
+    def test_lines_and_amount_together_400(self):
+        res = self.client_.post(
+            self.url,
+            {
+                "lines": [{"product_id": self.p1.id, "qty": 1}],
+                "amount": 5000,
+                "tendered": 10000,
+            },
+            format="json",
+        )
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(Sale.objects.count(), 0)
+
+    def test_neither_lines_nor_amount_400(self):
+        res = self.client_.post(self.url, {"tendered": 10000}, format="json")
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(Sale.objects.count(), 0)
+
+
 class SaleBundleTests(TestCase):
     def setUp(self):
         self.user, self.tenant, _ = _make_user("a@b.com")

@@ -2,10 +2,13 @@ import { useAtom } from "jotai";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "react-toastify";
 
+import { evalExpr } from "@/features/sales/calc";
 import { cashierSessionAtom } from "@/features/cashier-auth/state";
 import { useCashierStock, useCreateSale } from "@/features/sales/hooks";
 import type { CashierStockItem, Sale } from "@/features/sales/types";
 import { ApiError } from "@/lib/api";
+
+const CALC_OPERATORS = "+-×÷";
 
 export interface CartLine {
   product_id: string;
@@ -38,6 +41,8 @@ export function usePosPage() {
   const [lines, setLines] = useState<CartLine[]>([]);
   const [tendered, setTendered] = useState<number>(0);
   const [completedSale, setCompletedSale] = useState<Sale | null>(null);
+  const [fastMode, setFastMode] = useState(false);
+  const [fastExpr, setFastExpr] = useState("");
   const searchRef = useRef<HTMLInputElement>(null);
 
   const { data: stock } = useCashierStock(search.trim() ? search : undefined);
@@ -203,19 +208,72 @@ export function usePosPage() {
     }
   };
 
-  const subtotal = lines.reduce((s, l) => s + Math.round(l.qty * l.unit_price), 0);
+  const fastResult = fastMode ? evalExpr(fastExpr) : null;
+  const fastAmount = fastResult ?? 0;
+  const lineSubtotal = lines.reduce((s, l) => s + Math.round(l.qty * l.unit_price), 0);
+  const subtotal = fastMode ? fastAmount : lineSubtotal;
   const change = Math.max(0, tendered - subtotal);
 
-  const canSubmit = lines.length > 0 && tendered >= subtotal && !create.isPending;
+  const canSubmit =
+    (fastMode ? fastResult != null && fastAmount > 0 : lines.length > 0) &&
+    tendered >= subtotal &&
+    !create.isPending;
 
   const reset = () => {
     setLines([]);
     setTendered(0);
     setSearch("");
+    setFastExpr("");
     setTimeout(() => searchRef.current?.focus(), 0);
   };
 
+  const pushCalc = (token: string) => {
+    setFastExpr((expr) => {
+      const isOp = token.length === 1 && CALC_OPERATORS.includes(token);
+      if (isOp) {
+        if (!expr) return expr; // no leading operator
+        const last = expr[expr.length - 1];
+        if (CALC_OPERATORS.includes(last)) return expr.slice(0, -1) + token; // no doubles
+      }
+      return expr + token;
+    });
+  };
+
+  const calcBackspace = () => setFastExpr((expr) => expr.slice(0, -1));
+
+  const calcClear = () => setFastExpr("");
+
+  const calcEquals = () => {
+    setFastExpr((expr) => {
+      const result = evalExpr(expr);
+      return result == null ? expr : String(result);
+    });
+  };
+
+  const toggleFastMode = () => {
+    setFastMode((prev) => {
+      const next = !prev;
+      // Keep each mode's inputs from leaking into the other.
+      setTendered(0);
+      if (next) setLines([]);
+      else setFastExpr("");
+      setSearch("");
+      return next;
+    });
+  };
+
   const onSubmit = () => {
+    const onResult = {
+      onSuccess: (sale: Sale) => setCompletedSale(sale),
+      onError: (err: unknown) => {
+        if (err instanceof ApiError) toast.error(err.message);
+        else toast.error(err instanceof Error ? err.message : "Gagal");
+      },
+    };
+    if (fastMode) {
+      create.mutate({ amount: fastAmount, tendered }, onResult);
+      return;
+    }
     create.mutate(
       {
         lines: lines.map((l) => ({
@@ -225,13 +283,7 @@ export function usePosPage() {
         })),
         tendered,
       },
-      {
-        onSuccess: (sale) => setCompletedSale(sale),
-        onError: (err) => {
-          if (err instanceof ApiError) toast.error(err.message);
-          else toast.error(err instanceof Error ? err.message : "Gagal");
-        },
-      },
+      onResult,
     );
   };
 
@@ -245,6 +297,14 @@ export function usePosPage() {
     setTendered,
     completedSale,
     setCompletedSale,
+    fastMode,
+    toggleFastMode,
+    fastExpr,
+    fastAmount,
+    pushCalc,
+    calcBackspace,
+    calcClear,
+    calcEquals,
     stockById,
     cartKeys,
     candidates,

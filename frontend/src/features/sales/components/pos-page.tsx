@@ -1,4 +1,4 @@
-import { Minus, Plus, Search, Trash2 } from "lucide-react";
+import { Delete, Minus, Plus, Search, Trash2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,6 +21,14 @@ export function PosPage() {
     setTendered,
     completedSale,
     setCompletedSale,
+    fastMode,
+    toggleFastMode,
+    fastExpr,
+    fastAmount,
+    pushCalc,
+    calcBackspace,
+    calcClear,
+    calcEquals,
     stockById,
     cartKeys,
     candidates,
@@ -43,7 +51,158 @@ export function PosPage() {
 
   return (
     <CashierShell maxWidth="6xl" fill>
-      <div className="grid gap-4 md:h-full md:min-h-0 lg:grid-cols-[1fr_400px]">
+      <div className="flex h-full min-h-0 flex-col gap-3">
+        <div className="flex shrink-0 gap-2 rounded-lg border border-border bg-card p-1">
+          <Button
+            type="button"
+            size="sm"
+            variant={fastMode ? "ghost" : "accent"}
+            className="flex-1"
+            onClick={() => fastMode && toggleFastMode()}
+          >
+            Kasir
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            variant={fastMode ? "accent" : "ghost"}
+            className="flex-1"
+            onClick={() => !fastMode && toggleFastMode()}
+          >
+            Mode Cepat
+          </Button>
+        </div>
+
+        <div className="grid min-h-0 flex-1 gap-4 md:min-h-0 lg:grid-cols-[1fr_400px]">
+        {fastMode ? (
+          <section className="flex min-h-0 flex-col gap-3">
+            <div className="rounded-lg border-2 border-border bg-card p-6">
+              <Label className="text-base">Total Belanja</Label>
+              <div className="mt-3 rounded-md border-2 border-input bg-background px-4 py-2">
+                <div className="h-6 truncate text-right font-mono text-base text-muted-foreground">
+                  {fastExpr || "0"}
+                </div>
+                <div className="text-right font-mono text-3xl font-bold tabular-nums">
+                  {idr.format(fastAmount)}
+                </div>
+              </div>
+              <div className="mt-4 grid grid-cols-4 gap-2">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="h-14 text-lg font-bold text-destructive hover:bg-destructive/10"
+                  onClick={calcClear}
+                  disabled={fastExpr === ""}
+                >
+                  C
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  aria-label="Hapus karakter terakhir"
+                  className="h-14"
+                  onClick={calcBackspace}
+                  disabled={fastExpr === ""}
+                >
+                  <Delete className="size-6" />
+                </Button>
+                <Button
+                  type="button"
+                  variant="accent"
+                  className="h-14 text-2xl"
+                  onClick={() => pushCalc("÷")}
+                >
+                  ÷
+                </Button>
+                <Button
+                  type="button"
+                  variant="accent"
+                  className="h-14 text-2xl"
+                  onClick={() => pushCalc("×")}
+                >
+                  ×
+                </Button>
+
+                {["7", "8", "9"].map((d) => (
+                  <Button
+                    key={d}
+                    type="button"
+                    variant="outline"
+                    className="h-14 text-xl font-semibold"
+                    onClick={() => pushCalc(d)}
+                  >
+                    {d}
+                  </Button>
+                ))}
+                <Button
+                  type="button"
+                  variant="accent"
+                  className="h-14 text-2xl"
+                  onClick={() => pushCalc("-")}
+                >
+                  −
+                </Button>
+
+                {["4", "5", "6"].map((d) => (
+                  <Button
+                    key={d}
+                    type="button"
+                    variant="outline"
+                    className="h-14 text-xl font-semibold"
+                    onClick={() => pushCalc(d)}
+                  >
+                    {d}
+                  </Button>
+                ))}
+                <Button
+                  type="button"
+                  variant="accent"
+                  className="h-14 text-2xl"
+                  onClick={() => pushCalc("+")}
+                >
+                  +
+                </Button>
+
+                {["1", "2", "3"].map((d) => (
+                  <Button
+                    key={d}
+                    type="button"
+                    variant="outline"
+                    className="h-14 text-xl font-semibold"
+                    onClick={() => pushCalc(d)}
+                  >
+                    {d}
+                  </Button>
+                ))}
+                <Button
+                  type="button"
+                  variant="accent"
+                  className="row-span-2 h-full text-2xl"
+                  onClick={calcEquals}
+                >
+                  =
+                </Button>
+
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="col-span-2 h-14 text-xl font-semibold"
+                  onClick={() => pushCalc("0")}
+                >
+                  0
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="h-14 text-xl font-semibold"
+                  onClick={() => pushCalc("000")}
+                >
+                  000
+                </Button>
+              </div>
+            </div>
+          </section>
+        ) : (
         <section className="flex min-h-0 flex-col gap-3">
           <div className="relative shrink-0">
             <Search className="pointer-events-none absolute left-4 top-1/2 size-5 -translate-y-1/2 text-muted-foreground" />
@@ -228,23 +387,23 @@ export function PosPage() {
             </ul>
           )}
         </section>
+        )}
 
         <aside className="lg:h-full lg:min-h-0">
-          <div className="rounded-lg border border-border bg-card p-4 shadow-md lg:flex lg:h-full lg:flex-col lg:overflow-hidden">
-            <div className="border-b border-border pb-3 lg:shrink-0">
+          <div className="rounded-lg border border-border bg-card p-3 shadow-md lg:flex lg:h-full lg:flex-col lg:overflow-hidden">
+            <div className="border-b border-border pb-2 lg:shrink-0">
               <p className="text-sm font-semibold uppercase tracking-[0.16em] text-muted-foreground">
                 Total Belanja
               </p>
-              <div className="mt-2">
-                <Money value={subtotal} size="3xl" />
+              <div className="mt-1">
+                <Money value={subtotal} size="xl" />
               </div>
-              <p className="mt-2 text-sm text-muted-foreground">
-                {lines.length} item
+              <p className="mt-1 text-sm text-muted-foreground">
+                {fastMode ? "Mode Cepat" : `${lines.length} item`}
               </p>
             </div>
 
-            <div className="lg:min-h-0 lg:flex-1 lg:overflow-y-auto">
-            <div className="mt-4 space-y-3">
+            <div className="mt-2 space-y-2 lg:flex-1">
               <Label htmlFor="tendered">Uang dari Pembeli</Label>
               <Input
                 id="tendered"
@@ -254,16 +413,16 @@ export function PosPage() {
                 value={tendered === 0 ? "" : tendered}
                 onChange={(e) => setTendered(Number(e.target.value || 0))}
                 placeholder="0"
-                className="h-12 text-right font-mono text-xl"
+                className="h-11 text-right font-mono text-xl"
               />
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-3">
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
                 {DENOMINATIONS.map((preset) => (
                   <Button
                     key={preset}
                     size="default"
                     variant="outline"
                     type="button"
-                    className="h-10 px-3 text-base"
+                    className="h-9 px-3 text-base"
                     onClick={() => setTendered((t) => t + preset)}
                   >
                     + {idr.format(preset)}
@@ -273,7 +432,7 @@ export function PosPage() {
                   size="default"
                   variant="ghost"
                   type="button"
-                  className="h-10 col-span-2 sm:col-span-3 lg:col-span-3 px-3 text-base text-muted-foreground hover:text-foreground"
+                  className="h-9 col-span-2 sm:col-span-3 lg:col-span-4 px-3 text-base text-muted-foreground hover:text-foreground"
                   onClick={() => setTendered(subtotal)}
                   disabled={subtotal === 0}
                 >
@@ -282,14 +441,14 @@ export function PosPage() {
               </div>
             </div>
 
-            <div className="mt-4 rounded-md bg-muted p-3">
+            <div className="mt-2 rounded-md bg-muted p-2.5">
               <div className="flex items-baseline justify-between gap-3">
                 <span className="text-base font-semibold text-muted-foreground">
                   Kembalian
                 </span>
                 <Money
                   value={change}
-                  size="xl"
+                  size="lg"
                   className={cn(
                     tendered >= subtotal && subtotal > 0
                       ? "text-[color:var(--color-success)]"
@@ -304,12 +463,10 @@ export function PosPage() {
               )}
             </div>
 
-            </div>
-
-            <div className="mt-4 lg:mt-0 lg:shrink-0 lg:pt-4">
+            <div className="mt-3 lg:mt-0 lg:shrink-0 lg:pt-3">
               <Button
                 variant="accent"
-                size="xl"
+                size="lg"
                 className="w-full"
                 disabled={!canSubmit}
                 onClick={onSubmit}
@@ -318,16 +475,21 @@ export function PosPage() {
               </Button>
               <Button
                 variant="outline"
-                size="default"
+                size="sm"
                 className="mt-2 w-full"
-                disabled={lines.length === 0 || create.isPending}
+                disabled={
+                  (fastMode
+                    ? fastAmount === 0 && tendered === 0
+                    : lines.length === 0) || create.isPending
+                }
                 onClick={reset}
               >
-                Kosongkan Keranjang
+                {fastMode ? "Reset" : "Kosongkan Keranjang"}
               </Button>
             </div>
           </div>
         </aside>
+        </div>
       </div>
 
       {completedSale && (

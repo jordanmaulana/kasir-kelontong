@@ -17,9 +17,24 @@ class SaleValidationError(Exception):
 
 
 @transaction.atomic
-def create_sale(*, store, cashier, lines, tendered):
+def create_sale(*, store, cashier, lines, tendered, amount=None):
     if not lines:
-        raise SaleValidationError("Minimal 1 item")
+        if amount is None:
+            raise SaleValidationError("Minimal 1 item")
+        subtotal = int(amount)
+        if subtotal <= 0:
+            raise SaleValidationError("Total harus lebih dari 0")
+        if tendered < subtotal:
+            raise InsufficientTenderError(
+                f"Uang tunai kurang: butuh {subtotal}, diterima {tendered}"
+            )
+        return Sale.objects.create(
+            store=store,
+            cashier=cashier,
+            subtotal=subtotal,
+            tendered=tendered,
+            change=tendered - subtotal,
+        )
 
     product_ids = [line["product_id"] for line in lines]
     keys = [(line["product_id"], bool(line.get("is_bundle", False))) for line in lines]

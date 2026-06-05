@@ -422,12 +422,11 @@ class SaleLineInputSerializer(serializers.Serializer):
 
 
 class SaleCreateSerializer(serializers.Serializer):
-    lines = SaleLineInputSerializer(many=True)
+    lines = SaleLineInputSerializer(many=True, required=False, default=list)
+    amount = serializers.IntegerField(min_value=1, required=False)
     tendered = serializers.IntegerField(min_value=0)
 
     def validate_lines(self, value):
-        if not value:
-            raise serializers.ValidationError("Minimal 1 item")
         seen = set()
         for line in value:
             key = (line["product_id"], bool(line.get("is_bundle", False)))
@@ -435,6 +434,15 @@ class SaleCreateSerializer(serializers.Serializer):
                 raise serializers.ValidationError("Baris duplikat dalam satu transaksi")
             seen.add(key)
         return value
+
+    def validate(self, attrs):
+        lines = attrs.get("lines") or []
+        amount = attrs.get("amount")
+        if not lines and amount is None:
+            raise serializers.ValidationError("Minimal 1 item atau masukkan total")
+        if lines and amount is not None:
+            raise serializers.ValidationError("Tidak bisa memakai item dan total sekaligus")
+        return attrs
 
 
 class SaleLineSerializer(serializers.Serializer):

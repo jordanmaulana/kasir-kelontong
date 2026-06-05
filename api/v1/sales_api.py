@@ -43,6 +43,7 @@ def create_sale_view(request):
             cashier=request.user,
             lines=serializer.validated_data["lines"],
             tendered=serializer.validated_data["tendered"],
+            amount=serializer.validated_data.get("amount"),
         )
     except SaleValidationError as exc:
         return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
