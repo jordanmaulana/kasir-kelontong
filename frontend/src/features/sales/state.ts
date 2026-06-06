@@ -61,7 +61,7 @@ export const changeAtom = atom((get) => Math.max(0, get(tenderedAtom) - get(subt
 
 // --- Write-only action atoms (pure client, no server data) ----------------
 
-export const pushCalcAtom = atom(null, (get, set, token: string) => {
+export const pushCalcAtom = atom(null, (_get, set, token: string) => {
   set(fastExprAtom, (expr) => {
     const isOp = token.length === 1 && CALC_OPERATORS.includes(token);
     if (isOp) {
@@ -73,15 +73,15 @@ export const pushCalcAtom = atom(null, (get, set, token: string) => {
   });
 });
 
-export const calcBackspaceAtom = atom(null, (get, set) => {
+export const calcBackspaceAtom = atom(null, (_get, set) => {
   set(fastExprAtom, (expr) => expr.slice(0, -1));
 });
 
-export const calcClearAtom = atom(null, (get, set) => {
+export const calcClearAtom = atom(null, (_get, set) => {
   set(fastExprAtom, "");
 });
 
-export const calcEqualsAtom = atom(null, (get, set) => {
+export const calcEqualsAtom = atom(null, (_get, set) => {
   set(fastExprAtom, (expr) => {
     const result = evalExpr(expr);
     return result == null ? expr : String(result);
