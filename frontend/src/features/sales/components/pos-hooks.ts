@@ -1,5 +1,5 @@
 import { useAtomValue, useSetAtom } from "jotai";
-import { useEffect, useMemo } from "react";
+import { useMemo } from "react";
 import { toast } from "react-toastify";
 
 import { useCashierStock, useCreateSale } from "@/features/sales/hooks";
@@ -150,14 +150,14 @@ export function useCartActions() {
 }
 
 /**
- * Search-driven product lookups: the candidate list, the exact-barcode match,
- * and the effect that auto-adds a scanned barcode.
+ * Search-driven product lookups: the candidate list and the exact-barcode
+ * match. Scanned barcodes are added to the cart by the Enter key handler in
+ * pos-search, not automatically.
  */
 export function usePosStock() {
   const search = useAtomValue(searchAtom);
   const cartKeys = useAtomValue(cartKeysAtom);
   const { data: stock } = useCashierStock(search.trim() ? search : undefined);
-  const { stockById, addProduct } = useCartActions();
 
   const candidates = useMemo(() => {
     if (!search.trim()) return [];
@@ -182,15 +182,7 @@ export function usePosStock() {
     );
   }, [stock, search, cartKeys]);
 
-  useEffect(() => {
-    if (!exactBarcodeMatch) return;
-    const p = exactBarcodeMatch;
-    const id = setTimeout(() => addProduct(p, false), 0);
-    return () => clearTimeout(id);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [exactBarcodeMatch]);
-
-  return { stockById, candidates, exactBarcodeMatch };
+  return { candidates, exactBarcodeMatch };
 }
 
 /** Submission: pay button enablement, the mutation, and success/error handling. */
