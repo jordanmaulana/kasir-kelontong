@@ -83,7 +83,9 @@ export function PosPaymentPanel() {
 
         <div className="mt-2 rounded-md bg-muted p-2.5">
           <div className="flex items-baseline justify-between gap-3">
-            <span className="text-base font-semibold text-muted-foreground">Kembalian</span>
+            <span className="text-base font-semibold text-muted-foreground">
+              Kembalian
+            </span>
             <Money
               value={change}
               size="lg"
@@ -96,32 +98,38 @@ export function PosPaymentPanel() {
           </div>
           {tendered > 0 && tendered < subtotal && (
             <p className="mt-2 text-sm font-bold text-destructive">
-              Kurang <Money value={subtotal - tendered} size="sm" className="text-destructive" />
+              Kurang{" "}
+              <Money
+                value={subtotal - tendered}
+                size="sm"
+                className="text-destructive"
+              />
             </p>
           )}
         </div>
 
-        <div className="mt-3 lg:mt-0 lg:shrink-0 lg:pt-3">
+        <div className="mt-3 flex gap-2 lg:mt-0 lg:shrink-0 lg:pt-3">
+          <Button
+            variant="outline"
+            size="lg"
+            className="shrink-0"
+            disabled={
+              (fastMode
+                ? fastAmount === 0 && tendered === 0
+                : lines.length === 0) || create.isPending
+            }
+            onClick={reset}
+          >
+            {fastMode ? "Reset" : "Kosongkan"}
+          </Button>
           <Button
             variant="accent"
             size="lg"
-            className="w-full"
+            className="flex-1"
             disabled={!canSubmit}
             onClick={onSubmit}
           >
             {create.isPending ? "Memproses…" : "Bayar Sekarang"}
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            className="mt-2 w-full"
-            disabled={
-              (fastMode ? fastAmount === 0 && tendered === 0 : lines.length === 0) ||
-              create.isPending
-            }
-            onClick={reset}
-          >
-            {fastMode ? "Reset" : "Kosongkan Keranjang"}
           </Button>
         </div>
       </div>
