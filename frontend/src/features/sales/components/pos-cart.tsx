@@ -16,9 +16,9 @@ export function PosCart() {
 
   if (lines.length === 0) {
     return (
-      <div className="rounded-lg border-2 border-dashed border-border bg-card/60 p-6 text-center">
-        <h3 className="text-xl font-bold text-foreground">Keranjang kosong</h3>
-        <p className="mt-2 text-base text-muted-foreground">
+      <div className="rounded-lg border-2 border-dashed border-border bg-card/60 p-4 text-center">
+        <h3 className="text-lg font-bold text-foreground">Keranjang kosong</h3>
+        <p className="mt-2 text-sm text-muted-foreground">
           Scan barcode atau ketik nama produk untuk memulai transaksi.
         </p>
       </div>
@@ -26,7 +26,7 @@ export function PosCart() {
   }
 
   return (
-    <ul className="min-h-0 flex-1 space-y-3 overflow-y-auto md:pr-1">
+    <ul className="min-h-0 flex-1 space-y-2 overflow-y-auto md:pr-1">
       {lines.map((line) => {
         const key = lineKey(line);
         const liveStock = stockById.get(line.product_id)?.qty ?? line.available_qty;
@@ -40,14 +40,14 @@ export function PosCart() {
         return (
           <li
             key={key}
-            className="rounded-lg border-2 border-border bg-card p-3 shadow-sm transition-colors"
+            className="rounded-lg border-2 border-border bg-card p-2.5 shadow-sm transition-colors"
           >
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <div className="min-w-0 flex-1">
-                <p className="truncate text-lg font-bold text-foreground">
+                <p className="truncate text-base font-bold text-foreground">
                   {line.product_name}
                   {line.is_bundle && line.bundle_label && (
-                    <span className="ml-2 rounded bg-accent/15 px-2 py-0.5 text-sm font-semibold text-accent">
+                    <span className="ml-2 rounded bg-accent/15 px-2 py-0.5 text-xs font-semibold text-accent">
                       {line.bundle_label} × {line.bundle_qty}
                     </span>
                   )}
@@ -75,7 +75,7 @@ export function PosCart() {
                   </button>
                 )}
               </div>
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-3">
                 <div className="flex items-center gap-2">
                   <Button
                     variant="outline"
@@ -83,7 +83,7 @@ export function PosCart() {
                     onClick={() => decrementQty(key)}
                     aria-label="Kurangi qty"
                   >
-                    <Minus className="size-5" />
+                    <Minus className="size-4" />
                   </Button>
                   <Input
                     type="number"
@@ -92,7 +92,7 @@ export function PosCart() {
                     step={line.is_weighted ? 0.25 : 1}
                     value={line.qty}
                     onChange={(e) => updateQty(key, Number(e.target.value))}
-                    className="h-12 w-24 text-center font-mono text-xl"
+                    className="h-10 w-20 text-center font-mono text-base"
                   />
                   <Button
                     variant="outline"
@@ -100,7 +100,7 @@ export function PosCart() {
                     onClick={() => incrementInCart(key)}
                     aria-label="Tambah qty"
                   >
-                    <Plus className="size-5" />
+                    <Plus className="size-4" />
                   </Button>
                   {line.is_weighted && (
                     <span className="ml-1 text-sm font-semibold text-muted-foreground">
@@ -108,8 +108,8 @@ export function PosCart() {
                     </span>
                   )}
                 </div>
-                <div className="min-w-28 text-right">
-                  <Money value={Math.round(line.qty * line.unit_price)} size="lg" />
+                <div className="min-w-24 text-right">
+                  <Money value={Math.round(line.qty * line.unit_price)} size="base" />
                 </div>
                 <Button
                   size="icon"
@@ -118,7 +118,7 @@ export function PosCart() {
                   onClick={() => removeLine(key)}
                   className="text-destructive hover:bg-destructive/10"
                 >
-                  <Trash2 className="size-5" />
+                  <Trash2 className="size-4" />
                 </Button>
               </div>
             </div>

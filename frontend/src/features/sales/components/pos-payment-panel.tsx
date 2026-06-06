@@ -30,20 +30,22 @@ export function PosPaymentPanel() {
 
   return (
     <aside className="lg:h-full lg:min-h-0">
-      <div className="rounded-lg border border-border bg-card p-3 shadow-md lg:flex lg:h-full lg:flex-col lg:overflow-hidden">
+      <div className="rounded-lg border border-border bg-card p-2.5 shadow-md lg:flex lg:h-full lg:flex-col lg:overflow-hidden">
         <div className="border-b border-border pb-2 lg:shrink-0">
-          <p className="text-sm font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-            Total Belanja
-          </p>
-          <div className="mt-1">
-            <Money value={subtotal} size="xl" />
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+              Total Belanja
+            </p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {fastMode ? "Mode Cepat" : `${lines.length} item`}
+            </p>
           </div>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {fastMode ? "Mode Cepat" : `${lines.length} item`}
-          </p>
+          <div className="mt-1">
+            <Money value={subtotal} size="lg" />
+          </div>
         </div>
 
-        <div className="mt-2 space-y-2 lg:flex-1">
+        <div className="mt-2 space-y-1.5 lg:flex-1">
           <Label htmlFor="tendered">Uang dari Pembeli</Label>
           <Input
             id="tendered"
@@ -53,7 +55,7 @@ export function PosPaymentPanel() {
             value={tendered === 0 ? "" : tendered}
             onChange={(e) => setTendered(Number(e.target.value || 0))}
             placeholder="0"
-            className="h-11 text-right font-mono text-xl"
+            className="h-10 text-right font-mono text-lg"
           />
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
             {DENOMINATIONS.map((preset) => (
@@ -62,7 +64,7 @@ export function PosPaymentPanel() {
                 size="default"
                 variant="outline"
                 type="button"
-                className="h-9 px-3 text-base"
+                className="h-8 px-3 text-sm"
                 onClick={() => setTendered((t) => t + preset)}
               >
                 + {idr.format(preset)}
@@ -72,7 +74,7 @@ export function PosPaymentPanel() {
               size="default"
               variant="ghost"
               type="button"
-              className="h-9 col-span-2 sm:col-span-3 lg:col-span-4 px-3 text-base text-muted-foreground hover:text-foreground"
+              className="h-8 col-span-2 sm:col-span-3 lg:col-span-4 px-3 text-sm text-muted-foreground hover:text-foreground"
               onClick={() => setTendered(subtotal)}
               disabled={subtotal === 0}
             >
@@ -81,14 +83,14 @@ export function PosPaymentPanel() {
           </div>
         </div>
 
-        <div className="mt-2 rounded-md bg-muted p-2.5">
+        <div className="mt-2 rounded-md bg-muted p-2">
           <div className="flex items-baseline justify-between gap-3">
-            <span className="text-base font-semibold text-muted-foreground">
+            <span className="text-sm font-semibold text-muted-foreground">
               Kembalian
             </span>
             <Money
               value={change}
-              size="lg"
+              size="base"
               className={cn(
                 tendered >= subtotal && subtotal > 0
                   ? "text-[color:var(--color-success)]"
@@ -111,7 +113,7 @@ export function PosPaymentPanel() {
         <div className="mt-3 flex gap-2 lg:mt-0 lg:shrink-0 lg:pt-3">
           <Button
             variant="outline"
-            size="lg"
+            size="default"
             className="shrink-0"
             disabled={
               (fastMode
@@ -124,7 +126,7 @@ export function PosPaymentPanel() {
           </Button>
           <Button
             variant="accent"
-            size="lg"
+            size="default"
             className="flex-1"
             disabled={!canSubmit}
             onClick={onSubmit}

@@ -23,21 +23,21 @@ export function PosCalculator() {
 
   return (
     <section className="flex min-h-0 flex-col gap-3">
-      <div className="rounded-lg border-2 border-border bg-card p-6">
-        <Label className="text-base">Total Belanja</Label>
-        <div className="mt-3 rounded-md border-2 border-input bg-background px-4 py-2">
-          <div className="h-6 truncate text-right font-mono text-base text-muted-foreground">
+      <div className="rounded-lg border-2 border-border bg-card p-4">
+        <Label className="text-sm">Total Belanja</Label>
+        <div className="mt-2 rounded-md border-2 border-input bg-background px-3 py-1.5">
+          <div className="h-5 truncate text-right font-mono text-sm text-muted-foreground">
             {fastExpr || "0"}
           </div>
-          <div className="text-right font-mono text-3xl font-bold tabular-nums">
+          <div className="text-right font-mono text-2xl font-bold tabular-nums">
             {idr.format(fastAmount)}
           </div>
         </div>
-        <div className="mt-4 grid grid-cols-4 gap-2">
+        <div className="mt-3 grid grid-cols-4 gap-2">
           <Button
             type="button"
             variant="ghost"
-            className="h-14 text-lg font-bold text-destructive hover:bg-destructive/10"
+            className="h-12 text-base font-bold text-destructive hover:bg-destructive/10"
             onClick={calcClear}
             disabled={fastExpr === ""}
           >
@@ -47,16 +47,16 @@ export function PosCalculator() {
             type="button"
             variant="ghost"
             aria-label="Hapus karakter terakhir"
-            className="h-14"
+            className="h-12"
             onClick={calcBackspace}
             disabled={fastExpr === ""}
           >
-            <Delete className="size-6" />
+            <Delete className="size-5" />
           </Button>
           <Button
             type="button"
             variant="accent"
-            className="h-14 text-2xl"
+            className="h-12 text-xl"
             onClick={() => pushCalc("÷")}
           >
             ÷
@@ -64,7 +64,7 @@ export function PosCalculator() {
           <Button
             type="button"
             variant="accent"
-            className="h-14 text-2xl"
+            className="h-12 text-xl"
             onClick={() => pushCalc("×")}
           >
             ×
@@ -75,7 +75,7 @@ export function PosCalculator() {
               key={d}
               type="button"
               variant="outline"
-              className="h-14 text-xl font-semibold"
+              className="h-12 text-lg font-semibold"
               onClick={() => pushCalc(d)}
             >
               {d}
@@ -84,7 +84,7 @@ export function PosCalculator() {
           <Button
             type="button"
             variant="accent"
-            className="h-14 text-2xl"
+            className="h-12 text-xl"
             onClick={() => pushCalc("-")}
           >
             −
@@ -95,7 +95,7 @@ export function PosCalculator() {
               key={d}
               type="button"
               variant="outline"
-              className="h-14 text-xl font-semibold"
+              className="h-12 text-lg font-semibold"
               onClick={() => pushCalc(d)}
             >
               {d}
@@ -104,7 +104,7 @@ export function PosCalculator() {
           <Button
             type="button"
             variant="accent"
-            className="h-14 text-2xl"
+            className="h-12 text-xl"
             onClick={() => pushCalc("+")}
           >
             +
@@ -115,7 +115,7 @@ export function PosCalculator() {
               key={d}
               type="button"
               variant="outline"
-              className="h-14 text-xl font-semibold"
+              className="h-12 text-lg font-semibold"
               onClick={() => pushCalc(d)}
             >
               {d}
@@ -124,7 +124,7 @@ export function PosCalculator() {
           <Button
             type="button"
             variant="accent"
-            className="row-span-2 h-full text-2xl"
+            className="row-span-2 h-full text-xl"
             onClick={calcEquals}
           >
             =
@@ -133,7 +133,7 @@ export function PosCalculator() {
           <Button
             type="button"
             variant="outline"
-            className="col-span-2 h-14 text-xl font-semibold"
+            className="col-span-2 h-12 text-lg font-semibold"
             onClick={() => pushCalc("0")}
           >
             0
@@ -141,7 +141,7 @@ export function PosCalculator() {
           <Button
             type="button"
             variant="outline"
-            className="h-14 text-xl font-semibold"
+            className="h-12 text-lg font-semibold"
             onClick={() => pushCalc("000")}
           >
             000

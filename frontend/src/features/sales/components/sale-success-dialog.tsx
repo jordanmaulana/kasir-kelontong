@@ -25,28 +25,28 @@ export function SaleSuccessDialog({ sale, onClose, onNewSale }: Props) {
       <DialogContent>
         <DialogHeader>
           <div className="mb-2 flex items-center gap-3">
-            <div className="flex size-12 items-center justify-center rounded-full bg-[color:var(--color-success)]/15 text-[color:var(--color-success)]">
-              <CheckCircle2 className="size-7" strokeWidth={2.4} />
+            <div className="flex size-10 items-center justify-center rounded-full bg-[color:var(--color-success)]/15 text-[color:var(--color-success)]">
+              <CheckCircle2 className="size-6" strokeWidth={2.4} />
             </div>
             <DialogTitle>Transaksi Berhasil</DialogTitle>
           </div>
         </DialogHeader>
 
-        <div className="space-y-5">
-          <div className="rounded-lg bg-[color:var(--color-success)]/12 p-6 text-center ring-1 ring-[color:var(--color-success)]/25">
+        <div className="space-y-4">
+          <div className="rounded-lg bg-[color:var(--color-success)]/12 p-4 text-center ring-1 ring-[color:var(--color-success)]/25">
             <p className="text-sm font-semibold uppercase tracking-[0.16em] text-[color:var(--color-success)]">
               Kembalian
             </p>
             <div className="mt-2">
               <Money
                 value={sale.change}
-                size="3xl"
+                size="2xl"
                 className="text-[color:var(--color-success)]"
               />
             </div>
           </div>
 
-          <dl className="space-y-3 text-base">
+          <dl className="space-y-2 text-sm">
             {sale.lines.length > 0 && (
               <div className="flex items-baseline justify-between">
                 <dt className="text-muted-foreground">Item</dt>
@@ -58,13 +58,13 @@ export function SaleSuccessDialog({ sale, onClose, onNewSale }: Props) {
             <div className="flex items-baseline justify-between">
               <dt className="text-muted-foreground">Total bayar</dt>
               <dd>
-                <Money value={sale.subtotal} size="base" />
+                <Money value={sale.subtotal} size="sm" />
               </dd>
             </div>
             <div className="flex items-baseline justify-between">
               <dt className="text-muted-foreground">Uang diterima</dt>
               <dd>
-                <Money value={sale.tendered} size="base" />
+                <Money value={sale.tendered} size="sm" />
               </dd>
             </div>
           </dl>

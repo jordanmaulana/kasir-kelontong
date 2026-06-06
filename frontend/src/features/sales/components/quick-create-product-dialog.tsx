@@ -110,7 +110,7 @@ export function QuickCreateProductDialog({
             Barcode ini belum terdaftar. Tambahkan produk baru untuk lanjut.
           </DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div>
             <Label htmlFor="quick-barcode">Barcode</Label>
             <Input
@@ -144,7 +144,7 @@ export function QuickCreateProductDialog({
               inputMode="numeric"
               min={0}
               step={1}
-              className="text-right font-mono text-lg"
+              className="text-right font-mono text-base"
               aria-invalid={!!errors.sell_price}
               {...register("sell_price", { valueAsNumber: true })}
             />

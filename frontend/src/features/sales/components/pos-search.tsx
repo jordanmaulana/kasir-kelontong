@@ -67,14 +67,14 @@ export function PosSearch() {
 
   return (
     <div className="relative shrink-0">
-      <Search className="pointer-events-none absolute left-4 top-1/2 size-5 -translate-y-1/2 text-muted-foreground" />
+      <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
       <Input
         ref={setSearchInput}
         value={search}
         onChange={(e) => setSearch(e.target.value)}
         onKeyDown={onSearchKeyDown}
         placeholder="Scan barcode atau ketik nama produk…"
-        className="h-12 pl-12 pr-4 text-lg"
+        className="h-10 pl-10 pr-4 text-base"
         autoFocus
         inputMode="numeric"
       />
@@ -87,10 +87,10 @@ export function PosSearch() {
             return (
               <div
                 key={p.product_id}
-                className="flex w-full items-center justify-between gap-4 px-5 py-4"
+                className="flex w-full items-center justify-between gap-3 px-4 py-2.5"
               >
                 <div className="flex min-w-0 flex-col gap-1">
-                  <span className="truncate text-lg font-semibold text-foreground">{p.name}</span>
+                  <span className="truncate text-base font-semibold text-foreground">{p.name}</span>
                   <span className="text-sm text-muted-foreground">
                     <span className="font-mono">{p.barcode ?? "—"}</span>
                     <span className="mx-2">·</span>
@@ -106,7 +106,7 @@ export function PosSearch() {
                 <div className="flex shrink-0 flex-col gap-2 sm:flex-row">
                   <Button
                     type="button"
-                    size="default"
+                    size="sm"
                     variant="outline"
                     disabled={singleIn}
                     onClick={() => addProduct(p, false)}
@@ -117,7 +117,7 @@ export function PosSearch() {
                   {hasBundle && (
                     <Button
                       type="button"
-                      size="default"
+                      size="sm"
                       variant="accent"
                       disabled={bundleIn}
                       onClick={() => addProduct(p, true)}

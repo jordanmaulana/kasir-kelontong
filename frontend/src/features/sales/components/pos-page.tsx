@@ -20,14 +20,14 @@ export function PosPage() {
 
   return (
     <CashierShell maxWidth="6xl" fill>
-      <div className="flex h-full min-h-0 flex-col gap-3">
+      <div className="flex h-full min-h-0 flex-col gap-2">
         <PosModeToggle />
 
-        <div className="grid min-h-0 flex-1 gap-4 md:min-h-0 lg:grid-cols-[1fr_400px]">
+        <div className="grid min-h-0 flex-1 gap-3 md:min-h-0 lg:grid-cols-[1fr_400px]">
           {fastMode ? (
             <PosCalculator />
           ) : (
-            <section className="flex min-h-0 flex-col gap-3">
+            <section className="flex min-h-0 flex-col gap-2">
               <PosSearch />
               <PosCart />
             </section>

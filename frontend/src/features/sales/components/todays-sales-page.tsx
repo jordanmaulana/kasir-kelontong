@@ -29,47 +29,47 @@ export function TodaysSalesPage() {
   const totalRevenue = (data ?? []).reduce((s, r) => s + r.subtotal, 0);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <div>
         <Button size="sm" variant="ghost" asChild className="-ml-3">
           <Link to="/cashier/pos">
-            <ArrowLeft className="size-5" />
+            <ArrowLeft className="size-4" />
             Kembali ke Kasir
           </Link>
         </Button>
-        <h1 className="mt-3 text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+        <h1 className="mt-2 text-xl font-bold tracking-tight text-foreground sm:text-2xl">
           Penjualan Hari Ini
         </h1>
-        <p className="mt-1 text-base text-muted-foreground">
+        <p className="mt-1 text-sm text-muted-foreground">
           {session.cashier.display_name} · {session.store.name}
         </p>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div className="rounded-lg border border-border bg-card p-6 shadow-sm">
+      <div className="grid gap-3 sm:grid-cols-2">
+        <div className="rounded-lg border border-border bg-card p-4 shadow-sm">
           <p className="text-sm font-semibold uppercase tracking-[0.16em] text-muted-foreground">
             Jumlah Transaksi
           </p>
-          <p className="mt-2 text-3xl font-bold tabular-nums text-foreground">
+          <p className="mt-2 text-2xl font-bold tabular-nums text-foreground">
             {data?.length ?? 0}
           </p>
         </div>
-        <div className="rounded-lg border border-border bg-card p-6 shadow-sm">
+        <div className="rounded-lg border border-border bg-card p-4 shadow-sm">
           <p className="text-sm font-semibold uppercase tracking-[0.16em] text-muted-foreground">
             Total Pendapatan
           </p>
           <div className="mt-2">
-            <Money value={totalRevenue} size="2xl" />
+            <Money value={totalRevenue} size="xl" />
           </div>
         </div>
       </div>
 
       {isLoading ? (
-        <p className="text-base text-muted-foreground">Memuat…</p>
+        <p className="text-sm text-muted-foreground">Memuat…</p>
       ) : !data || data.length === 0 ? (
-        <div className="rounded-lg border-2 border-dashed border-border bg-card/60 p-12 text-center">
-          <h2 className="text-xl font-bold text-foreground">Belum ada transaksi</h2>
-          <p className="mt-2 text-base text-muted-foreground">
+        <div className="rounded-lg border-2 border-dashed border-border bg-card/60 p-8 text-center">
+          <h2 className="text-lg font-bold text-foreground">Belum ada transaksi</h2>
+          <p className="mt-2 text-sm text-muted-foreground">
             Transaksi hari ini akan muncul di sini saat Anda mulai berjualan.
           </p>
         </div>
@@ -86,21 +86,21 @@ export function TodaysSalesPage() {
           </TableHeader>
           <TableBody>
             {data.map((row) => (
-              <TableRow key={row.id} className="h-16">
-                <TableCell className="font-mono text-base text-muted-foreground">
+              <TableRow key={row.id} className="h-12">
+                <TableCell className="font-mono text-sm text-muted-foreground">
                   {timeFmt.format(new Date(row.created_on))}
                 </TableCell>
                 <TableCell className="text-right font-mono">{row.line_count}</TableCell>
                 <TableCell className="text-right">
-                  <Money value={row.subtotal} size="base" />
+                  <Money value={row.subtotal} size="sm" />
                 </TableCell>
                 <TableCell className="text-right">
-                  <Money value={row.tendered} size="base" muted />
+                  <Money value={row.tendered} size="sm" muted />
                 </TableCell>
                 <TableCell className="text-right">
                   <Money
                     value={row.change}
-                    size="base"
+                    size="sm"
                     className="text-[color:var(--color-success)]"
                   />
                 </TableCell>
