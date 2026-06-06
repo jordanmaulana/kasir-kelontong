@@ -25,7 +25,7 @@ export function SaleSuccessDialog({ sale, onClose, onNewSale }: Props) {
       <DialogContent>
         <DialogHeader>
           <div className="mb-2 flex items-center gap-3">
-            <div className="flex size-10 items-center justify-center rounded-full bg-success/15 text-[color:var(--color-success)]">
+            <div className="flex size-10 items-center justify-center rounded-full bg-success/15 text-(--color-success)">
               <CheckCircle2 className="size-6" strokeWidth={2.4} />
             </div>
             <DialogTitle>Transaksi Berhasil</DialogTitle>
@@ -33,8 +33,8 @@ export function SaleSuccessDialog({ sale, onClose, onNewSale }: Props) {
         </DialogHeader>
 
         <div className="space-y-4">
-          <div className="rounded-lg bg-success/12 p-4 text-center ring-1 ring-[color:var(--color-success)]/25">
-            <p className="text-sm font-semibold uppercase tracking-[0.16em] text-[color:var(--color-success)]">
+          <div className="rounded-lg bg-success/12 p-4 text-center ring-1 ring-success/25">
+            <p className="text-sm font-semibold uppercase tracking-[0.16em] text-(--color-success)">
               Kembalian
             </p>
             <div className="mt-2">
