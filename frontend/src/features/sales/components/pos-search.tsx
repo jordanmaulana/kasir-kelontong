@@ -86,6 +86,7 @@ export function PosSearch() {
         value={search}
         onChange={(e) => setSearch(e.target.value)}
         onKeyDown={onSearchKeyDown}
+        inputMode="text"
         placeholder="Scan barcode atau ketik nama produk…"
         className="h-10 pl-10 pr-4 text-base"
         autoFocus
