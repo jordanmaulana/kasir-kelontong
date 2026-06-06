@@ -4,9 +4,19 @@ import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useCartActions, usePosStock } from "@/features/sales/components/pos-hooks";
+import {
+  useCartActions,
+  usePosStock,
+} from "@/features/sales/components/pos-hooks";
 import { QuickCreateProductDialog } from "@/features/sales/components/quick-create-product-dialog";
-import { cartKeysAtom, idr, lineKey, linesAtom, searchAtom, searchInputRefAtom } from "@/features/sales/state";
+import {
+  cartKeysAtom,
+  idr,
+  lineKey,
+  linesAtom,
+  searchAtom,
+  searchInputRefAtom,
+} from "@/features/sales/state";
 import type { CashierStockItem } from "@/features/sales/types";
 import type { Product } from "@/features/products/types";
 import { formatQty } from "@/lib/format";
@@ -18,7 +28,10 @@ export function PosSearch() {
   const setSearchInput = useSetAtom(searchInputRefAtom);
   const { candidates, exactBarcodeMatch } = usePosStock();
   const { addProduct, incrementInCart } = useCartActions();
-  const [quickCreate, setQuickCreate] = useState<{ open: boolean; barcode: string }>({
+  const [quickCreate, setQuickCreate] = useState<{
+    open: boolean;
+    barcode: string;
+  }>({
     open: false,
     barcode: "",
   });
@@ -76,7 +89,6 @@ export function PosSearch() {
         placeholder="Scan barcode atau ketik nama produk…"
         className="h-10 pl-10 pr-4 text-base"
         autoFocus
-        inputMode="numeric"
       />
       {candidates.length > 0 && (
         <div className="absolute z-10 mt-2 w-full overflow-hidden rounded-lg border-2 border-border bg-card shadow-xl">
@@ -90,7 +102,9 @@ export function PosSearch() {
                 className="flex w-full items-center justify-between gap-3 px-4 py-2.5"
               >
                 <div className="flex min-w-0 flex-col gap-1">
-                  <span className="truncate text-base font-semibold text-foreground">{p.name}</span>
+                  <span className="truncate text-base font-semibold text-foreground">
+                    {p.name}
+                  </span>
                   <span className="text-sm text-muted-foreground">
                     <span className="font-mono">{p.barcode ?? "—"}</span>
                     <span className="mx-2">·</span>
@@ -123,7 +137,8 @@ export function PosSearch() {
                       onClick={() => addProduct(p, true)}
                     >
                       <Plus className="mr-1 size-4" />
-                      {p.bundle_label ?? "Bundel"} {p.bundle_qty}pcs {idr.format(p.bundle_price ?? 0)}
+                      {p.bundle_label ?? "Bundel"} {p.bundle_qty}pcs{" "}
+                      {idr.format(p.bundle_price ?? 0)}
                     </Button>
                   )}
                 </div>
