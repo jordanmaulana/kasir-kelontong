@@ -91,6 +91,11 @@ urlpatterns = [
         name="api-v1-cashier-stock",
     ),
     path(
+        "cashier/products/",
+        products_api.CashierProductsView.as_view(),
+        name="api-v1-cashier-products",
+    ),
+    path(
         "cashier/sales/",
         sales_api.create_sale_view,
         name="api-v1-cashier-sales-create",

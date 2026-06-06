@@ -1,10 +1,14 @@
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import { Plus, Search } from "lucide-react";
+import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useCartActions, usePosStock } from "@/features/sales/components/pos-hooks";
+import { QuickCreateProductDialog } from "@/features/sales/components/quick-create-product-dialog";
 import { cartKeysAtom, idr, lineKey, linesAtom, searchAtom, searchInputRefAtom } from "@/features/sales/state";
+import type { CashierStockItem } from "@/features/sales/types";
+import type { Product } from "@/features/products/types";
 import { formatQty } from "@/lib/format";
 
 export function PosSearch() {
@@ -14,6 +18,10 @@ export function PosSearch() {
   const setSearchInput = useSetAtom(searchInputRefAtom);
   const { candidates, exactBarcodeMatch } = usePosStock();
   const { addProduct, incrementInCart } = useCartActions();
+  const [quickCreate, setQuickCreate] = useState<{ open: boolean; barcode: string }>({
+    open: false,
+    barcode: "",
+  });
 
   const onSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key !== "Enter") return;
@@ -33,7 +41,28 @@ export function PosSearch() {
     }
     if (candidates.length === 1) {
       addProduct(candidates[0], false);
+      return;
     }
+    if (term && candidates.length === 0) {
+      setQuickCreate({ open: true, barcode: term });
+    }
+  };
+
+  const onProductCreated = (product: Product) => {
+    const item: CashierStockItem = {
+      product_id: product.id,
+      name: product.name,
+      barcode: product.barcode,
+      sell_price: product.sell_price,
+      qty: 0,
+      last_movement_at: null,
+      bundle_qty: product.bundle_qty,
+      bundle_price: product.bundle_price,
+      bundle_label: product.bundle_label,
+      is_weighted: product.is_weighted,
+      unit_label: product.unit_label,
+    };
+    addProduct(item, false);
   };
 
   return (
@@ -103,6 +132,12 @@ export function PosSearch() {
           })}
         </div>
       )}
+      <QuickCreateProductDialog
+        open={quickCreate.open}
+        barcode={quickCreate.barcode}
+        onOpenChange={(open) => setQuickCreate((prev) => ({ ...prev, open }))}
+        onCreated={onProductCreated}
+      />
     </div>
   );
 }

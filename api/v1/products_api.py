@@ -10,6 +10,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from api.v1._tenant import require_tenant as _require_tenant
+from api.v1.cashier_auth import CashierTokenAuthentication
 from api.v1.serializers import ProductSerializer
 from product.models import Product
 from stock.models import StockReason
@@ -73,6 +74,25 @@ class ProductsView(APIView):
                     reason=StockReason.RECEIVING,
                     actor=request.user,
                 )
+        return Response(ProductSerializer(product).data, status=status.HTTP_201_CREATED)
+
+
+class CashierProductsView(APIView):
+    """Lets a logged-in cashier quick-create a product for their own store's tenant.
+
+    Used by the POS when a scanned barcode matches no product. Price-only — no
+    opening stock is recorded here, so the product starts at qty 0.
+    """
+
+    authentication_classes = [CashierTokenAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        tenant = request.auth.store.tenant
+        serializer = ProductSerializer(data=request.data, context={"tenant": tenant})
+        serializer.is_valid(raise_exception=True)
+        # actor is a User FK; request.user is a Cashier, so it can't be the actor.
+        product = serializer.save(tenant=tenant, actor=None)
         return Response(ProductSerializer(product).data, status=status.HTTP_201_CREATED)
 
 

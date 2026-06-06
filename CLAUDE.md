@@ -76,6 +76,8 @@ Money fields are integers (IDR has no decimals): `subtotal`, `tendered`, `change
 - Shared fetch helper: `src/lib/api.ts` — reads `localStorage.token` and sets `Authorization: Token …`. **Cashier endpoints use a different token header** (`CashierToken`); the cashier feature wraps `fetch` separately rather than going through `api()`. Check `features/cashier-auth/api.ts` before adding cashier routes.
 - Dev proxy: `/api` → `http://localhost:8000` (see `vite.config.ts`). `VITE_API_URL` overrides the base.
 
+**POS feature (`features/sales/`).** The checkout screen is the app's core and is the most decomposed feature. The whole cart/payment state lives in **jotai atoms** in `state.ts` (`linesAtom`, `tenderedAtom`, `fastModeAtom`, etc.) — derived atoms compute totals/change, so components stay presentational. `calc.ts` is a dependency-free arithmetic evaluator (`evalExpr`) powering the "fast mode" calculator (operators are the unicode `×`/`÷`); money is whole-rupiah, so it rounds to an integer. UI is split into `components/pos-*.tsx` (`pos-page`, `pos-cart`, `pos-search`, `pos-payment-panel`, `pos-calculator`, `pos-mode-toggle`, `sale-success-dialog`) with POS-only hooks in `components/pos-hooks.ts`. Cart lines carry both single and bundle pricing (`is_bundle`, `bundle_qty/price/label`, `is_weighted`) — mirror the backend `create_sale` invariants when editing line logic.
+
 ### Mobile (`mobile/`)
 
 Flutter Android-tablet client (Riverpod + go_router + dio). Feature-parity target with `frontend/`. Separate toolchain — see `mobile/README.md` for setup. Shares backend; same two-token auth model (admin `Token` / cashier `CashierToken`). Emulator hits backend at `http://10.0.2.2:8000`.

@@ -1,9 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import {
+  createCashierProduct,
   createSale,
   listCashierStock,
   listTodaysSales,
+  type CashierProductInput,
 } from "@/features/sales/api";
 import type { CreateSaleInput } from "@/features/sales/types";
 
@@ -18,6 +20,16 @@ export function useTodaysSales() {
   return useQuery({
     queryKey: ["cashier-sales", "today"],
     queryFn: listTodaysSales,
+  });
+}
+
+export function useCreateCashierProduct() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: CashierProductInput) => createCashierProduct(body),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["cashier-stock"] });
+    },
   });
 }
 
