@@ -16,10 +16,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { lookupBarcode } from "@/features/products/api";
-import {
-  useCreateProduct,
-  useUpdateProduct,
-} from "@/features/products/hooks";
+import { useCreateProduct, useUpdateProduct } from "@/features/products/hooks";
 import type { Product } from "@/features/products/types";
 import { useStores } from "@/features/stores/hooks";
 import { ApiError } from "@/lib/api";
@@ -36,7 +33,10 @@ const schema = z
     barcode: z
       .string()
       .max(64)
-      .regex(/^$|^[A-Za-z0-9-]{1,64}$/, "Barcode 1–64 karakter, huruf/angka/tanda hubung")
+      .regex(
+        /^$|^[A-Za-z0-9-]{1,64}$/,
+        "Barcode 1–64 karakter, huruf/angka/tanda hubung",
+      )
       .optional(),
     name: z.string().min(1, "Nama wajib diisi").max(200),
     sell_price: z
@@ -67,8 +67,11 @@ const schema = z
         message: "Isi satuan (mis. kg, g, L)",
       });
     }
-    const hasInitialStore = !!(data.initial_store_id && data.initial_store_id.trim());
-    const hasInitialQty = data.initial_qty != null && !Number.isNaN(data.initial_qty);
+    const hasInitialStore = !!(
+      data.initial_store_id && data.initial_store_id.trim()
+    );
+    const hasInitialQty =
+      data.initial_qty != null && !Number.isNaN(data.initial_qty);
     // Initial stock is fully optional: an empty qty simply records no opening stock,
     // even when a store is selected (single-store forms auto-select one). Only flag
     // the inverse — a qty entered with no store to apply it to.
@@ -100,7 +103,11 @@ const schema = z
         message: "Nama bundel wajib diisi",
       });
     }
-    if (data.bundle_qty == null || Number.isNaN(data.bundle_qty) || data.bundle_qty < 2) {
+    if (
+      data.bundle_qty == null ||
+      Number.isNaN(data.bundle_qty) ||
+      data.bundle_qty < 2
+    ) {
       ctx.addIssue({
         code: "custom",
         path: ["bundle_qty"],
@@ -131,7 +138,7 @@ interface Props {
 const EMPTY_DEFAULTS: FormValues = {
   barcode: "",
   name: "",
-  sell_price: 0,
+  sell_price: undefined as unknown as number,
   is_weighted: false,
   unit_label: "pcs",
   has_bundle: false,
@@ -179,7 +186,7 @@ export function ProductFormDialog({ open, onOpenChange, product }: Props) {
     reset({
       barcode: product?.barcode ?? "",
       name: product?.name ?? "",
-      sell_price: product?.sell_price ?? 0,
+      sell_price: product?.sell_price ?? (undefined as unknown as number),
       is_weighted: product?.is_weighted ?? false,
       unit_label: product?.unit_label ?? "pcs",
       has_bundle: productHasBundle,
@@ -231,11 +238,18 @@ export function ProductFormDialog({ open, onOpenChange, product }: Props) {
       unit_label: values.is_weighted
         ? (values.unit_label ?? "").trim() || "kg"
         : "pcs",
-      bundle_qty: values.is_weighted || !values.has_bundle ? null : values.bundle_qty ?? null,
-      bundle_price: values.is_weighted || !values.has_bundle ? null : values.bundle_price ?? null,
-      bundle_label: values.is_weighted || !values.has_bundle
-        ? null
-        : (values.bundle_label ?? "").trim() || null,
+      bundle_qty:
+        values.is_weighted || !values.has_bundle
+          ? null
+          : (values.bundle_qty ?? null),
+      bundle_price:
+        values.is_weighted || !values.has_bundle
+          ? null
+          : (values.bundle_price ?? null),
+      bundle_label:
+        values.is_weighted || !values.has_bundle
+          ? null
+          : (values.bundle_label ?? "").trim() || null,
     };
     const storeId = values.initial_store_id?.trim() ?? "";
     const qty = values.initial_qty;
@@ -255,7 +269,9 @@ export function ProductFormDialog({ open, onOpenChange, product }: Props) {
         return;
       }
       toast.success(
-        includeInitialStock ? "Produk berhasil dibuat & stok awal dicatat" : "Produk berhasil dibuat",
+        includeInitialStock
+          ? "Produk berhasil dibuat & stok awal dicatat"
+          : "Produk berhasil dibuat",
       );
       reset(EMPTY_DEFAULTS);
       requestAnimationFrame(() => setFocus("barcode"));
@@ -318,7 +334,9 @@ export function ProductFormDialog({ open, onOpenChange, product }: Props) {
               {...register("barcode")}
             />
             {errors.barcode && (
-              <p className="mt-2 text-sm font-semibold text-destructive">{errors.barcode.message}</p>
+              <p className="mt-2 text-sm font-semibold text-destructive">
+                {errors.barcode.message}
+              </p>
             )}
           </div>
           <div>
@@ -330,7 +348,9 @@ export function ProductFormDialog({ open, onOpenChange, product }: Props) {
               {...register("name")}
             />
             {errors.name && (
-              <p className="mt-2 text-sm font-semibold text-destructive">{errors.name.message}</p>
+              <p className="mt-2 text-sm font-semibold text-destructive">
+                {errors.name.message}
+              </p>
             )}
           </div>
           <div>
@@ -341,7 +361,6 @@ export function ProductFormDialog({ open, onOpenChange, product }: Props) {
               inputMode="numeric"
               min={0}
               step={1}
-              placeholder="0"
               className="text-right font-mono text-lg"
               aria-invalid={!!errors.sell_price}
               {...register("sell_price", { valueAsNumber: true })}
@@ -381,7 +400,8 @@ export function ProductFormDialog({ open, onOpenChange, product }: Props) {
                   </p>
                 )}
                 <p className="mt-1 text-xs text-muted-foreground">
-                  Harga di atas adalah harga per {watch("unit_label") || "satuan"}.
+                  Harga di atas adalah harga per{" "}
+                  {watch("unit_label") || "satuan"}.
                 </p>
               </div>
             )}
@@ -431,7 +451,9 @@ export function ProductFormDialog({ open, onOpenChange, product }: Props) {
                       placeholder="20"
                       className="text-right font-mono text-lg"
                       aria-invalid={!!errors.bundle_qty}
-                      {...register("bundle_qty", { setValueAs: optionalNumber })}
+                      {...register("bundle_qty", {
+                        setValueAs: optionalNumber,
+                      })}
                     />
                     {errors.bundle_qty && (
                       <p className="mt-2 text-sm font-semibold text-destructive">
@@ -450,7 +472,9 @@ export function ProductFormDialog({ open, onOpenChange, product }: Props) {
                       placeholder="0"
                       className="text-right font-mono text-lg"
                       aria-invalid={!!errors.bundle_price}
-                      {...register("bundle_price", { setValueAs: optionalNumber })}
+                      {...register("bundle_price", {
+                        setValueAs: optionalNumber,
+                      })}
                     />
                     {errors.bundle_price && (
                       <p className="mt-2 text-sm font-semibold text-destructive">
@@ -468,7 +492,8 @@ export function ProductFormDialog({ open, onOpenChange, product }: Props) {
               <div>
                 <p className="text-sm font-semibold">Stok awal (opsional)</p>
                 <p className="text-xs text-muted-foreground">
-                  Catat penerimaan stok pertama bersamaan dengan pembuatan produk.
+                  Catat penerimaan stok pertama bersamaan dengan pembuatan
+                  produk.
                 </p>
               </div>
 
@@ -502,7 +527,8 @@ export function ProductFormDialog({ open, onOpenChange, product }: Props) {
 
               <div>
                 <Label htmlFor="initial-qty">
-                  Jumlah ({isWeighted ? watch("unit_label") || "satuan" : "pcs"})
+                  Jumlah ({isWeighted ? watch("unit_label") || "satuan" : "pcs"}
+                  )
                 </Label>
                 <Input
                   id="initial-qty"
@@ -533,7 +559,11 @@ export function ProductFormDialog({ open, onOpenChange, product }: Props) {
             >
               Batal
             </Button>
-            <Button type="submit" variant="accent" disabled={mutation.isPending}>
+            <Button
+              type="submit"
+              variant="accent"
+              disabled={mutation.isPending}
+            >
               {mutation.isPending
                 ? "Menyimpan…"
                 : isEdit

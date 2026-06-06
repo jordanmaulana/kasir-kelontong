@@ -38,7 +38,12 @@ interface Props {
   onCreated: (product: Product) => void;
 }
 
-export function QuickCreateProductDialog({ open, onOpenChange, barcode, onCreated }: Props) {
+export function QuickCreateProductDialog({
+  open,
+  onOpenChange,
+  barcode,
+  onCreated,
+}: Props) {
   const create = useCreateCashierProduct();
 
   const { data: lookup } = useQuery({
@@ -57,12 +62,12 @@ export function QuickCreateProductDialog({ open, onOpenChange, barcode, onCreate
     formState: { errors },
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
-    defaultValues: { name: "", sell_price: 0 },
+    defaultValues: { name: "", sell_price: undefined as unknown as number },
   });
 
   // Reset the form each time the dialog opens for a new barcode.
   useEffect(() => {
-    if (open) reset({ name: "", sell_price: 0 });
+    if (open) reset({ name: "", sell_price: undefined as unknown as number });
   }, [open, barcode, reset]);
 
   // Pre-fill the name once the catalog lookup resolves, then jump to price.
@@ -75,7 +80,11 @@ export function QuickCreateProductDialog({ open, onOpenChange, barcode, onCreate
 
   const onSubmit = (values: FormValues) => {
     create.mutate(
-      { barcode: barcode.trim() || null, name: values.name.trim(), sell_price: values.sell_price },
+      {
+        barcode: barcode.trim() || null,
+        name: values.name.trim(),
+        sell_price: values.sell_price,
+      },
       {
         onSuccess: (product) => {
           onCreated(product);
@@ -83,7 +92,10 @@ export function QuickCreateProductDialog({ open, onOpenChange, barcode, onCreate
         },
         onError: (err: unknown) => {
           if (err instanceof ApiError) toast.error(err.message);
-          else toast.error(err instanceof Error ? err.message : "Gagal menyimpan produk");
+          else
+            toast.error(
+              err instanceof Error ? err.message : "Gagal menyimpan produk",
+            );
         },
       },
     );
@@ -119,7 +131,9 @@ export function QuickCreateProductDialog({ open, onOpenChange, barcode, onCreate
               {...register("name")}
             />
             {errors.name && (
-              <p className="mt-2 text-sm font-semibold text-destructive">{errors.name.message}</p>
+              <p className="mt-2 text-sm font-semibold text-destructive">
+                {errors.name.message}
+              </p>
             )}
           </div>
           <div>
@@ -130,7 +144,6 @@ export function QuickCreateProductDialog({ open, onOpenChange, barcode, onCreate
               inputMode="numeric"
               min={0}
               step={1}
-              placeholder="0"
               className="text-right font-mono text-lg"
               aria-invalid={!!errors.sell_price}
               {...register("sell_price", { valueAsNumber: true })}
@@ -142,7 +155,11 @@ export function QuickCreateProductDialog({ open, onOpenChange, barcode, onCreate
             )}
           </div>
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+            >
               Batal
             </Button>
             <Button type="submit" variant="accent" disabled={create.isPending}>
