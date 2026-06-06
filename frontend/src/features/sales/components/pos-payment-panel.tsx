@@ -93,7 +93,7 @@ export function PosPaymentPanel() {
               size="base"
               className={cn(
                 tendered >= subtotal && subtotal > 0
-                  ? "text-[color:var(--color-success)]"
+                  ? "text-(--color-success)"
                   : "text-muted-foreground/60",
               )}
             />

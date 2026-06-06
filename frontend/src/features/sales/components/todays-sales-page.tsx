@@ -68,7 +68,9 @@ export function TodaysSalesPage() {
         <p className="text-sm text-muted-foreground">Memuat…</p>
       ) : !data || data.length === 0 ? (
         <div className="rounded-lg border-2 border-dashed border-border bg-card/60 p-8 text-center">
-          <h2 className="text-lg font-bold text-foreground">Belum ada transaksi</h2>
+          <h2 className="text-lg font-bold text-foreground">
+            Belum ada transaksi
+          </h2>
           <p className="mt-2 text-sm text-muted-foreground">
             Transaksi hari ini akan muncul di sini saat Anda mulai berjualan.
           </p>
@@ -90,7 +92,9 @@ export function TodaysSalesPage() {
                 <TableCell className="font-mono text-sm text-muted-foreground">
                   {timeFmt.format(new Date(row.created_on))}
                 </TableCell>
-                <TableCell className="text-right font-mono">{row.line_count}</TableCell>
+                <TableCell className="text-right font-mono">
+                  {row.line_count}
+                </TableCell>
                 <TableCell className="text-right">
                   <Money value={row.subtotal} size="sm" />
                 </TableCell>
@@ -101,7 +105,7 @@ export function TodaysSalesPage() {
                   <Money
                     value={row.change}
                     size="sm"
-                    className="text-[color:var(--color-success)]"
+                    className="text-(--color-success)"
                   />
                 </TableCell>
               </TableRow>

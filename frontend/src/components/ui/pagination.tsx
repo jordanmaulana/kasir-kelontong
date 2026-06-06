@@ -1,4 +1,10 @@
-import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, MoreHorizontal } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
+  MoreHorizontal,
+} from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -26,7 +32,12 @@ export interface PaginationProps {
   className?: string;
 }
 
-export function Pagination({ page, totalPages, onPageChange, className }: PaginationProps) {
+export function Pagination({
+  page,
+  totalPages,
+  onPageChange,
+  className,
+}: PaginationProps) {
   if (totalPages <= 1) return null;
 
   const tokens = buildPages(page, totalPages);
@@ -67,7 +78,7 @@ export function Pagination({ page, totalPages, onPageChange, className }: Pagina
             aria-label={`Halaman ${token}`}
             aria-current={token === page ? "page" : undefined}
             onClick={() => onPageChange(token)}
-            className="!w-auto min-w-10 px-2 tabular-nums"
+            className="w-auto! min-w-10 px-2 tabular-nums"
           >
             {token}
           </Button>
