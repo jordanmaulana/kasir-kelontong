@@ -31,9 +31,16 @@ function todayIso(): string {
   return new Date(d.getTime() - tz).toISOString().slice(0, 10);
 }
 
+function isoDaysAgo(days: number): string {
+  const d = new Date();
+  d.setDate(d.getDate() - days);
+  const tz = d.getTimezoneOffset() * 60_000;
+  return new Date(d.getTime() - tz).toISOString().slice(0, 10);
+}
+
 export function ReportsTab({ storeId }: Props) {
   const today = todayIso();
-  const [from, setFrom] = useState(today);
+  const [from, setFrom] = useState(isoDaysAgo(30));
   const [to, setTo] = useState(today);
   const { data, isLoading, isError, error } = useSalesReport(storeId, from, to);
   const [downloading, setDownloading] = useState(false);
